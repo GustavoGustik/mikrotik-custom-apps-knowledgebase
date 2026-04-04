@@ -79,7 +79,7 @@ The setup wizard configures disk, router IP, and bridge for the app system:
 
 This configures:
 - **Disk**: Which external storage to use for app data
-- **Router IP**: The IP address used for accessing apps (e.g., 192.168.128.1)
+- **Router IP**: The IP address used for accessing apps (e.g., 10.0.1.1)
 - **Bridge**: Which bridge apps connect to (typically `bridge1`)
 
 ### Verify setup
@@ -90,7 +90,7 @@ This configures:
 Expected output:
 ```
               disk: nvme1
-  assumed-router-ip: 192.168.128.1
+  assumed-router-ip: 10.0.1.1
          lan-bridge: bridge1
        auto-update: yes
   certificate-status: ok

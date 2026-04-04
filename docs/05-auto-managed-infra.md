@@ -65,7 +65,7 @@ Example for Docmost (internal mode, port 3013→3000):
 ```
 /ip/firewall/nat/add action=dst-nat chain=dstnat \
   comment="app docmost redirect to web" \
-  dst-address=192.168.128.1 dst-port=3013 \
+  dst-address=10.0.1.1 dst-port=3013 \
   protocol=tcp to-addresses=172.18.0.6 to-ports=3000
 ```
 
@@ -119,7 +119,7 @@ Look for the `cmds=` field:
 cmds=
   /interface set veth-app-mosquitto name=veth-app-mosquitto
   /interface bridge port add bridge=bridge1 interface=veth-app-mosquitto pvid=1
-  /ip reverse-proxy add certificate=apps-*.xxx.routingthecloud.com ip-address=192.168.128.50 port=1883 sni=mosquitto.xxx.routingthecloud.com
+  /ip reverse-proxy add certificate=apps-*.xxx.routingthecloud.com ip-address=10.0.1.50 port=1883 sni=mosquitto.xxx.routingthecloud.com
   /container set app-mosquitto check-certificate=yes cmd="" ... name=app-mosquitto remote-image=docker.io/eclipse-mosquitto:latest ...
 ```
 
@@ -129,9 +129,9 @@ The `variables-to-use-in-environment` field shows resolved placeholder values:
 
 ```
 variables-to-use-in-environment=
-  [containerIP]=192.168.128.50
+  [containerIP]=10.0.1.50
   [containerInterface]=veth-app-mosqui
-  [routerIP]=192.168.128.1
+  [routerIP]=10.0.1.1
   [accessIP]=mosquitto.xxx.routingthecloud.com
   [accessPort]=443
   [accessProto]=https

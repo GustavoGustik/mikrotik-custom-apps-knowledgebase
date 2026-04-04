@@ -299,12 +299,12 @@ RouterOS replaces these at runtime in environment values:
 
 | Variable | Description | Example Value |
 |----------|-------------|---------------|
-| `[accessIP]` | Access IP/domain (depends on HTTPS setting) | `192.168.128.1` or `myapp.xxx.routingthecloud.com` |
+| `[accessIP]` | Access IP/domain (depends on HTTPS setting) | `10.0.1.1` or `myapp.xxx.routingthecloud.com` |
 | `[accessPort]` | Access port (first port with `:web` label) | `8080` or `443` (HTTPS) |
 | `[accessProto]` | Protocol | `http` or `https` |
-| `[containerIP]` | Container's actual IP address | `192.168.128.50` or `172.18.0.4` |
+| `[containerIP]` | Container's actual IP address | `10.0.1.50` or `172.18.0.4` |
 | `[containerInterface]` | VETH interface name | `veth-app-myapp` |
-| `[routerIP]` | Router's configured IP | `192.168.128.1` |
+| `[routerIP]` | Router's configured IP | `10.0.1.1` |
 
 **Usage**:
 ```yaml

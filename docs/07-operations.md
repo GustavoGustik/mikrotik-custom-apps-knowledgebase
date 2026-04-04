@@ -150,19 +150,19 @@ This exports app definitions (YAML, network settings) but NOT container data/vol
 ### Volume Backup (Data)
 ```bash
 # Backup specific app volumes
-scp -r admin@192.168.128.1:/nvme1/apps/myapp/ ./backup-myapp/
+scp -r admin@10.0.1.1:/nvme1/apps/myapp/ ./backup-myapp/
 
 # Backup all app data
-scp -r admin@192.168.128.1:/nvme1/apps/ ./backup-all-apps/
+scp -r admin@10.0.1.1:/nvme1/apps/ ./backup-all-apps/
 ```
 
 ### Full Backup Procedure
 ```bash
 # 1. Export RouterOS config
-ssh admin@192.168.128.1 '/export' > routeros-config.rsc
+ssh admin@10.0.1.1 '/export' > routeros-config.rsc
 
 # 2. Backup app data
-scp -r admin@192.168.128.1:/nvme1/apps/ ./apps-backup/
+scp -r admin@10.0.1.1:/nvme1/apps/ ./apps-backup/
 
 # 3. Store YAML files in git (recommended)
 git add -A && git commit -m "backup: app configs $(date +%Y-%m-%d)"
@@ -182,7 +182,7 @@ pg_dump -U myuser mydb > /var/lib/postgresql/data/backup.sql
 
 Then copy:
 ```bash
-scp admin@192.168.128.1:/nvme1/apps/myapp/pg_data/pgdata/backup.sql ./
+scp admin@10.0.1.1:/nvme1/apps/myapp/pg_data/pgdata/backup.sql ./
 ```
 
 ## Restore
@@ -192,7 +192,7 @@ scp admin@192.168.128.1:/nvme1/apps/myapp/pg_data/pgdata/backup.sql ./
 1. Create app with same YAML: `/app add disabled=yes network=bridge1 yaml="..."`
 2. Upload volume data:
    ```bash
-   scp -r ./backup-myapp/data/ admin@192.168.128.1:/nvme1/apps/myapp/data/
+   scp -r ./backup-myapp/data/ admin@10.0.1.1:/nvme1/apps/myapp/data/
    ```
 3. Enable app: `/app enable myapp`
 

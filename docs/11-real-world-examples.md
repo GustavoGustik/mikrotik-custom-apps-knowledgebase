@@ -1,25 +1,18 @@
 # Real-World Examples
 
-Production apps running on CCR2116-12G-4S+ (ARM64, 16 GB RAM, RouterOS 7.22.1, NVMe storage).
+Example YAML manifests organized by type: catalog apps (ship with RouterOS) vs custom apps (user-written).
 
-## Overview
+All examples use generic IP addresses (`10.0.1.0/24` for LAN, router at `10.0.1.1`). Replace with your actual subnet.
 
-| # | App | Services | Network | IP | Memory | Purpose |
-|---|-----|----------|---------|-----|--------|---------|
-| 1 | mosquitto | 1 | bridge1 | .128.50 | 13 MB | MQTT broker |
-| 2 | zigbee2mqtt | 1 | bridge1 | .128.51 | 100 MB | Zigbee bridge |
-| 3 | nodered | 1 | bridge1 | .128.52 | 187 MB | Automation |
-| 4 | unifi | 2 | bridge1 | .128.54 | 1414 MB | WiFi controller |
-| 5 | sia-gateway | 2 | bridge1 | .128.15 | 180 MB | Alarm receiver |
-| 6 | hue-loxone-bridge | 1 | bridge1 | .128.16 | 30 MB | Smart home bridge |
-| 7 | mqtt-logger | 1 | bridge1 | .128.55 | 37 MB | MQTT analytics |
-| 8 | mikrotik-controller | 4 | bridge1 | .128.100 | 472 MB | Router management |
-| 9 | docmost | 3 | internal | 172.18.0.6 | 518 MB | Wiki/docs |
-| **Total** | | **17 containers** | | | **~2.9 GB** | |
+---
 
-## 1. Mosquitto — MQTT Broker with Inline Config
+## Part 1: Catalog Apps (Built into RouterOS)
 
-The simplest app pattern: single service with inline configuration file.
+These apps come pre-installed in the RouterOS 7.22+ app catalog. You can install them with one click in WinBox, or customize the YAML as shown below.
+
+### 1.1 Mosquitto — MQTT Broker with Inline Config
+
+The simplest app pattern: single service with inline configuration file. Available in catalog but shown here with customized config.
 
 ```yaml
 name: mosquitto
@@ -44,15 +37,78 @@ configs:
     content: |
       listener 1883
       allow_anonymous true
-      
+
       listener 9001
       protocol websockets
       allow_anonymous true
 ```
 
-**Key pattern**: Inline `configs:` section replaces the need to manually upload configuration files.
+**Pattern demonstrated**: Inline `configs:` section — inject config files directly from YAML without uploading separate files.
 
-## 2. Zigbee2MQTT — Single-Service with External Dependencies
+### 1.2 Node-RED — Minimal Single-Service App
+
+The absolute minimum viable YAML. One image, one port, one volume.
+
+```yaml
+name: nodered
+descr: Low-code programming for event-driven applications
+page: https://nodered.org
+category: automation
+services:
+  nodered:
+    image: docker.io/nodered/node-red:latest
+    ports:
+      - 1880:1880:web
+    volumes:
+      - node_red_data:/data
+    restart: unless-stopped
+```
+
+**Pattern demonstrated**: Minimal YAML — just `image`, `ports`, `volumes`, `restart`.
+
+### 1.3 Docmost — Multi-Service Catalog App (Internal Network)
+
+Three services (Postgres + Redis + Docmost) with placeholder variables. This is how it comes from the catalog — no changes needed.
+
+```yaml
+name: docmost
+descr: Modern wiki and documentation platform built for teams
+page: https://docmost.com
+category: productivity
+default-credentials: web setup
+services:
+  db:
+    image: docker.io/postgres:16-alpine
+    environment:
+      POSTGRES_DB: docmost
+      POSTGRES_USER: docmost
+      POSTGRES_PASSWORD: STRONG_DB_PASSWORD
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    shm_size: "256mb"
+  redis:
+    image: docker.io/redis:7.2-alpine
+    volumes:
+      - redis_data:/data
+  docmost:
+    image: docker.io/docmost/docmost:latest
+    environment:
+      APP_URL: "[accessProto]://[accessIP]:[accessPort]"
+      APP_SECRET: "REPLACE_WITH_LONG_SECRET_KEY_HERE"
+      DATABASE_URL: "postgresql://docmost:STRONG_DB_PASSWORD@127.0.0.1:5432/docmost?schema=public"
+      REDIS_URL: "redis://127.0.0.1:6379"
+    ports:
+      - 3013:3000:web
+    volumes:
+      - docmost:/app/data/storage
+    restart: unless-stopped
+```
+
+**Pattern demonstrated**: Placeholder variables (`[accessProto]`, `[accessIP]`, `[accessPort]`) — RouterOS replaces them at runtime. `127.0.0.1` for inter-service DB/Redis communication. `shm_size` for PostgreSQL.
+
+### 1.4 Zigbee2MQTT — Single-Service with External Dependency
+
+Also from catalog, but depends on a separate Mosquitto app for MQTT.
 
 ```yaml
 name: zigbee2mqtt
@@ -76,11 +132,17 @@ volumes:
   z2m_data: {}
 ```
 
-**Key pattern**: Depends on Mosquitto (separate app), configured after first start via onboarding wizard at `http://<ip>:8080`.
+**Pattern demonstrated**: Inter-app dependency — Z2M connects to Mosquitto at `mqtt://10.0.1.50:1883` (configured via onboarding wizard after first start, not in YAML). Apps communicate via LAN IPs, not through any shared namespace.
 
-## 3. UniFi — Multi-Service with Database
+---
 
-Two services (MongoDB + UniFi) sharing one VETH/IP.
+## Part 2: Custom Apps (User-Written YAML)
+
+These apps are NOT in the RouterOS catalog. They demonstrate how to write your own YAML manifests for custom use cases.
+
+### 2.1 UniFi — Custom Multi-Service with Version-Pinned Database
+
+WiFi controller with MongoDB. Requires exact MongoDB version on ARM Cortex-A72.
 
 ```yaml
 name: unifi
@@ -125,16 +187,19 @@ volumes:
   unifi_data: {}
 ```
 
-**Critical**: `mongo:4.4.18` is the MAX version for Cortex-A72 (CCR2116). `MONGO_HOST: 127.0.0.1` because services share localhost.
+**Pattern demonstrated**:
+- **Version pinning**: `mongo:4.4.18` — MUST be exact on CCR2116/CCR2216 (Cortex-A72). Versions 4.4.19+ crash with "Illegal instruction"
+- **Multi-service localhost**: `MONGO_HOST: 127.0.0.1` — both containers share one VETH
+- **Multiple port types**: `:web` for admin UI, `:tcp` for AP inform, `:udp` for STUN and discovery
 
-## 4. SIA Gateway — Custom Node.js App with PostgreSQL
+### 2.2 SIA Gateway — Generic Image + Custom Code on Volume
 
-Custom alarm receiver using generic `node:20-alpine` image with code on volume.
+Custom alarm receiver. Uses `node:20-alpine` as base and loads application code from a volume.
 
 ```yaml
 name: sia-gateway
 descr: SIA DC-09 alarm receiver with MQTT, Loxone and web UI
-page: https://www.securityindustry.org/industry-standards/dc-09/
+page: https://example.com/sia-gateway
 category: security
 default-credentials: none
 url-path: /
@@ -144,7 +209,7 @@ services:
     environment:
       POSTGRES_DB: sia_gateway
       POSTGRES_USER: sia
-      POSTGRES_PASSWORD: sia
+      POSTGRES_PASSWORD: change-me-in-production
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - pg_data:/var/lib/postgresql/data
@@ -169,23 +234,32 @@ volumes:
   app: {}
 ```
 
-**Key pattern**: Generic base image (`node:20-alpine`) + custom `command:` + code deployed to volume via SCP.
+Deploy code to volume:
+```bash
+scp -r ./dist admin@10.0.1.1:/nvme1/apps/sia-gateway/app/dist/
+scp package.json admin@10.0.1.1:/nvme1/apps/sia-gateway/app/
+```
 
-## 5. Hue-Loxone Bridge — Custom App with Inline JSON Config
+**Pattern demonstrated**:
+- **Generic image + volume**: No Docker build needed — use `node:20-alpine` and mount code
+- **Custom command**: `command: "node /app/dist/index.js"` overrides default entrypoint
+- **depends_on**: Database starts before application
 
-Custom bridge between Philips Hue and Loxone Miniserver with embedded configuration.
+### 2.3 Hue-Loxone Bridge — Custom Image with Inline JSON Config
+
+Custom Docker image with embedded JSON configuration delivered via `configs:`.
 
 ```yaml
 name: hue-loxone-bridge
 descr: Bidirectional bridge between Philips Hue and Loxone Miniserver
-page: https://github.com/gustavogustik/hue-loxone-bridge
+page: https://example.com/hue-loxone-bridge
 category: home-automation
 default-credentials: none
 url-path: /
 auto-update: false
 services:
   bridge:
-    image: docker.io/gustavogustik/hue-loxone-bridge:latest
+    image: docker.io/youruser/hue-loxone-bridge:latest
     ports:
       - "3100:3000:web"
     environment:
@@ -204,14 +278,14 @@ configs:
       {
         "server": { "port": 3000 },
         "hue": {
-          "bridgeIP": "192.168.11.7",
-          "appKey": "your-hue-api-key"
+          "bridgeIP": "10.0.1.200",
+          "appKey": "your-hue-api-key-here"
         },
         "loxone": {
-          "host": "192.168.11.160",
+          "host": "10.0.1.201",
           "port": 80,
           "user": "admin",
-          "password": "password"
+          "password": "your-password"
         },
         "mappings": [
           { "name": "Kitchen", "hueId": "xxx", "loxoneUuid": "yyy" }
@@ -221,31 +295,79 @@ volumes:
   data: {}
 ```
 
-**Key pattern**: Custom Docker image + inline JSON config with `target_volume` and `target_path`.
+**Pattern demonstrated**:
+- **Custom Docker image**: Pre-built and pushed to registry
+- **Inline JSON config**: `configs:` with `target_volume` + `target_path` writes config file into a volume
+- **Custom command**: Passes config path as argument
 
-## 6. MikroTik Controller — Complex 4-Service App
+### 2.4 MQTT Logger — Lightweight Custom Monitoring
 
-Centralized router management with Postgres, Node.js backend, background worker, and Caddy reverse proxy.
+Single-service Node.js app that subscribes to MQTT and logs to an external database.
 
 ```yaml
-name: mikrotik-controller
-descr: MikroTik Controller - Centralized router management and monitoring platform
-page: https://github.com/gustavo/mikrotik-controller
-icon: https://upload.wikimedia.org/wikipedia/commons/7/7e/MikroTik_logo.svg
+name: mqtt-logger
+descr: MQTT traffic logger to PostgreSQL for analytics
+page: https://example.com/mqtt-logger
+category: monitoring
+default-credentials: none
+url-path: /
+auto-update: false
+services:
+  logger:
+    image: docker.io/node:20-alpine
+    ports:
+      - "3000:3000:web"
+    environment:
+      WEB_PORT: "3000"
+      MQTT_BROKER: mqtt://10.0.1.50:1883
+      DB_HOST: 10.0.1.1
+      DB_PORT: "5432"
+      DB_NAME: mqtt_logger
+      DB_USER: mqtt_logger
+      DB_PASSWORD: change-me
+      MQTT_TOPICS: "#"
+      SKIP_TOPICS: "zigbee/bridge/"
+      BATCH_SIZE: "100"
+      BATCH_INTERVAL_MS: "1000"
+      NODE_ENV: production
+      TZ: Europe/Prague
+    command: "sh /app/entrypoint.sh"
+    volumes:
+      - app:/app
+    restart: unless-stopped
+volumes:
+  app: {}
+```
+
+**Pattern demonstrated**:
+- **External service references**: MQTT broker and PostgreSQL on different IPs (other apps or devices)
+- **Shell entrypoint**: `command: "sh /app/entrypoint.sh"` for startup scripts
+- **Filtering**: App-level topic filtering via environment variables
+
+### 2.5 Multi-Router Controller — Complex 4-Service App
+
+The most complex pattern: 4 services (database, API backend, background worker, reverse proxy) all sharing one IP.
+
+```yaml
+name: router-controller
+descr: Centralized router management and monitoring platform
+page: https://example.com/router-controller
+icon: https://example.com/logo.svg
 category: networking
 default-credentials: admin / admin (change immediately!)
 url-path: /
 auto-update: false
 
 services:
+  # 1. Database — starts first
   database:
-    image: docker.io/library/postgres:16.7-alpine
-    container_name: mtk-database
+    image: docker.io/library/postgres:16-alpine
+    container_name: ctrl-database
     hostname: postgres
     environment:
-      POSTGRES_DB: mikrotik_controller
-      POSTGRES_USER: mikrotik
-      POSTGRES_PASSWORD: MikroTik2024Secure!
+      POSTGRES_DB: controller
+      POSTGRES_USER: controller
+      POSTGRES_PASSWORD: SecureDbPass123!
       POSTGRES_INITDB_ARGS: --encoding=UTF8 --locale=C
       PGDATA: /var/lib/postgresql/data/pgdata
       TZ: Europe/Prague
@@ -255,16 +377,17 @@ services:
     stop_grace_period: "30s"
     restart: unless-stopped
 
+  # 2. API Backend — depends on database
   backend:
-    image: docker.io/gustavogustik/mikrotik-controller-backend:latest
-    container_name: mtk-backend
+    image: docker.io/youruser/controller-backend:v1.0
+    container_name: ctrl-backend
     hostname: backend
     depends_on:
       - database
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://mikrotik:MikroTik2024Secure!@localhost:5432/mikrotik_controller
-      JWT_SECRET: SuperSecretJWTKey_Change_This_In_Production_123
+      DATABASE_URL: postgresql://controller:SecureDbPass123!@localhost:5432/controller
+      JWT_SECRET: replace-with-random-64-char-string
       JWT_EXPIRES_IN: 7d
       PORT: "3000"
       CORS_ORIGIN: "*"
@@ -273,16 +396,17 @@ services:
     stop_grace_period: "10s"
     restart: unless-stopped
 
+  # 3. Background Worker — same image, different command
   worker:
-    image: docker.io/gustavogustik/mikrotik-controller-backend:latest
-    container_name: mtk-worker
+    image: docker.io/youruser/controller-backend:v1.0
+    container_name: ctrl-worker
     hostname: worker
     depends_on:
       - database
       - backend
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://mikrotik:MikroTik2024Secure!@localhost:5432/mikrotik_controller
+      DATABASE_URL: postgresql://controller:SecureDbPass123!@localhost:5432/controller
       WORKER_MODE: "true"
       MONITORING_INTERVAL: "30000"
       LOG_LEVEL: info
@@ -291,9 +415,10 @@ services:
     stop_grace_period: "10s"
     restart: unless-stopped
 
+  # 4. Caddy Reverse Proxy — single entry point
   caddy:
     image: docker.io/library/caddy:2-alpine
-    container_name: mtk-caddy
+    container_name: ctrl-caddy
     hostname: caddy
     depends_on:
       - backend
@@ -312,69 +437,30 @@ volumes:
   caddy_config: {}
 ```
 
-**Key patterns**:
-- 4 services sharing single VETH/IP
-- Caddy as reverse proxy (single entry point on port 80)
-- Worker reuses backend image with different `command:`
-- `depends_on` chains: database → backend → worker, backend → caddy
-- `DATABASE_URL` uses `localhost` (not `postgres` hostname)
+**Patterns demonstrated**:
+- **4 services on 1 IP**: All share single VETH — Caddy forwards HTTP to backend via hostname
+- **Shared image, different commands**: `worker` reuses `backend` image with `command: "node dist/workers/monitoring-worker.js"`
+- **depends_on chain**: `database` → `backend` → `worker`, `backend` → `caddy`
+- **Caddy as entry point**: Only Caddy exposes port 80 with `:web` label. Backend is not directly accessible.
+- **`localhost` in DATABASE_URL**: Because all services share network namespace
 
-## 7. Docmost — App Store App (Internal Network)
+---
 
-Multi-service wiki running on internal bridge with NAT.
+## Memory and Disk Reference
 
-```yaml
-name: docmost
-descr: Modern wiki and documentation platform built for teams
-page: https://docmost.com
-category: productivity
-default-credentials: web setup
-services:
-  db:
-    image: docker.io/postgres:16-alpine
-    environment:
-      POSTGRES_DB: docmost
-      POSTGRES_USER: docmost
-      POSTGRES_PASSWORD: STRONG_DB_PASSWORD
-    volumes:
-      - db_data:/var/lib/postgresql/data
-    shm_size: "256mb"
-  redis:
-    image: docker.io/redis:7.2-alpine
-    volumes:
-      - redis_data:/data
-  docmost:
-    image: docker.io/docmost/docmost:latest
-    environment:
-      APP_URL: "[accessProto]://[accessIP]:[accessPort]"
-      APP_SECRET: "REPLACE_WITH_LONG_SECRET_KEY_HERE"
-      DATABASE_URL: "postgresql://docmost:STRONG_DB_PASSWORD@127.0.0.1:5432/docmost?schema=public"
-      REDIS_URL: "redis://127.0.0.1:6379"
-    ports:
-      - 3013:3000:web
-    volumes:
-      - docmost:/app/data/storage
-    restart: unless-stopped
-```
-
-**Key pattern**: Uses `[accessProto]://[accessIP]:[accessPort]` placeholder for dynamic URL. Running on internal bridge (172.18.0.6) with NAT to router port 3013.
-
-## Memory and Disk Usage Summary
+Typical resource usage for these app types (measured on CCR2116-12G-4S+, ARM64):
 
 ```
-App                     Memory      App Size    Data Size
-─────────────────────────────────────────────────────────
-mosquitto               13 MB       23 MB       -
-zigbee2mqtt             100 MB      139 MB      7 MB
-nodered                 187 MB      607 MB      51 MB
-unifi                   1,414 MB    961 MB      553 MB
-sia-gateway             180 MB      389 MB      119 MB
-hue-loxone-bridge       30 MB       134 MB      -
-mqtt-logger             37 MB       160 MB      12 MB
-mikrotik-controller     472 MB      1,919 MB    283 MB
-docmost                 518 MB      1,365 MB    48 MB
-─────────────────────────────────────────────────────────
-TOTAL                   ~2.9 GB     ~5.7 GB     ~1.1 GB
+App Type                Memory      Image Size   Notes
+───────────────────────────────────────────────────────────────
+MQTT broker             ~15 MB      ~25 MB       Extremely light
+Zigbee bridge           ~100 MB     ~140 MB      Depends on device count
+Node-RED                ~190 MB     ~600 MB      Grows with installed nodes
+UniFi (MongoDB+app)     ~1,400 MB   ~960 MB      Heaviest — MongoDB is hungry
+Node.js + Postgres      ~180 MB     ~390 MB      Typical for custom backends
+Node.js single-service  ~35 MB      ~160 MB      Light custom apps
+Wiki (Postgres+Redis)   ~520 MB     ~1,400 MB    3-service full-stack
+4-service full-stack    ~470 MB     ~1,900 MB    Postgres + 2x Node + Caddy
 ```
 
-Router total container memory: 4,334 MB (out of 16 GB available).
+**Rule of thumb**: Budget 200-500 MB per app. UniFi is the outlier at ~1.4 GB. A 16 GB router can comfortably run 10-15 apps.

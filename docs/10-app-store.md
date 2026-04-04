@@ -90,7 +90,7 @@ python3 -m http.server 8000
 
 Configure on router:
 ```
-/app/settings set app-store-urls=http://192.168.128.10:8000/myapps.yaml
+/app/settings set app-store-urls=http://10.0.1.10:8000/myapps.yaml
 ```
 
 ### Option 2: GitHub Pages / Cloudflare Pages
@@ -192,7 +192,7 @@ For testing custom apps during development:
 
 2. **Configure router**:
    ```
-   /app/settings set app-store-urls=http://192.168.128.10:8000/apps.yaml
+   /app/settings set app-store-urls=http://10.0.1.10:8000/apps.yaml
    ```
 
 3. **Edit → Refresh cycle**:

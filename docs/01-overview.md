@@ -53,7 +53,7 @@ Output includes the `cmds=` field showing every RouterOS command that was auto-g
 cmds=
   /interface set veth-app-mosquitto name=veth-app-mosquitto
   /interface bridge port add bridge=bridge1 interface=veth-app-mosquitto pvid=1
-  /ip reverse-proxy add certificate=apps-*.xxx.routingthecloud.com ip-address=192.168.128.50 port=1883 sni=mosquitto.xxx.routingthecloud.com
+  /ip reverse-proxy add certificate=apps-*.xxx.routingthecloud.com ip-address=10.0.1.50 port=1883 sni=mosquitto.xxx.routingthecloud.com
   /container set app-mosquitto check-certificate=yes cmd="" ... name=app-mosquitto remote-image=docker.io/eclipse-mosquitto:latest ...
 ```
 

@@ -30,11 +30,11 @@ configs:
       {
         "server": { "port": 3000 },
         "hue": {
-          "bridgeIP": "192.168.11.7",
+          "bridgeIP": "10.0.2.7",
           "appKey": "your-hue-api-key-here"
         },
         "loxone": {
-          "host": "192.168.11.160",
+          "host": "10.0.2.160",
           "port": 80,
           "user": "admin",
           "password": "your-loxone-password"

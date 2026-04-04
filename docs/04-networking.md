@@ -34,9 +34,9 @@ Every app has **two** network-related settings:
 | App | default-network (YAML) | network (CLI) | Effective Mode |
 |-----|----------------------|---------------|----------------|
 | docmost | internal | default | **internal** (NAT at 172.18.0.6) |
-| mosquitto | internal | bridge1 | **bridge1** (LAN at 192.168.128.50) |
-| zigbee2mqtt | internal | bridge1 | **bridge1** (LAN at 192.168.128.51) |
-| unifi | internal | bridge1 | **bridge1** (LAN at 192.168.128.54) |
+| mosquitto | internal | bridge1 | **bridge1** (LAN at 10.0.1.50) |
+| zigbee2mqtt | internal | bridge1 | **bridge1** (LAN at 10.0.1.51) |
+| unifi | internal | bridge1 | **bridge1** (LAN at 10.0.1.54) |
 
 Some **catalog apps** come pre-configured with `default-network=bridge1` because they need LAN access by design:
 
@@ -87,7 +87,7 @@ When no `networks:` section is specified OR `network=default` is used with `defa
                     Internet
                        │
                   ┌────┴────┐
-                  │ Router   │ 192.168.128.1
+                  │ Router   │ 10.0.1.1
                   │ bridge1  │
                   └────┬────┘
                        │
@@ -132,7 +132,7 @@ Or via CLI: `/app add ... network=bridge1`
                     Internet
                        │
                   ┌────┴────┐
-                  │ Router   │ 192.168.128.1
+                  │ Router   │ 10.0.1.1
                   │ bridge1  │
                   └────┬────┘
                        │
@@ -203,8 +203,8 @@ Real example from the UniFi app (2 containers, 1 VETH):
 /container print proplist=name,interface,hosts where name~"unifi"
 
 NAME               INTERFACE       HOSTS
-app-unifi-mongodb  veth-app-unifi  mongodb:192.168.128.54, unifi:192.168.128.54
-app-unifi-unifi    veth-app-unifi  mongodb:192.168.128.54, unifi:192.168.128.54
+app-unifi-mongodb  veth-app-unifi  mongodb:10.0.1.54, unifi:10.0.1.54
+app-unifi-unifi    veth-app-unifi  mongodb:10.0.1.54, unifi:10.0.1.54
 ```
 
 ### Can you do this manually with raw `/container`?
@@ -213,17 +213,17 @@ app-unifi-unifi    veth-app-unifi  mongodb:192.168.128.54, unifi:192.168.128.54
 
 ```
 # 1. Create shared VETH
-/interface/veth/add name=my-shared-veth address=192.168.128.54/24 gateway=192.168.128.1
+/interface/veth/add name=my-shared-veth address=10.0.1.54/24 gateway=10.0.1.1
 
 # 2. Add to bridge
 /interface/bridge/port/add bridge=bridge1 interface=my-shared-veth
 
 # 3. Create containers with SAME interface and hosts
 /container/add remote-image=mongo:4.4.18 interface=my-shared-veth \
-  hosts=mongodb:192.168.128.54,unifi:192.168.128.54
+  hosts=mongodb:10.0.1.54,unifi:10.0.1.54
 
 /container/add remote-image=lscr.io/linuxserver/unifi-network-application interface=my-shared-veth \
-  hosts=mongodb:192.168.128.54,unifi:192.168.128.54
+  hosts=mongodb:10.0.1.54,unifi:10.0.1.54
 ```
 
 **What `/app` adds on top** is the automation — from a single YAML file it automatically:
@@ -240,12 +240,12 @@ So the shared namespace is a **convenience feature of `/app`**, not a capability
 
 RouterOS injects hostname entries into each container's `/etc/hosts`. All services in an app get entries for all other services. This is done via the `hosts=` property on `/container`, which `/app` populates automatically.
 
-For a 3-service app (gateway, postgres, redis) on IP 192.168.128.15:
+For a 3-service app (gateway, postgres, redis) on IP 10.0.1.15:
 ```
 # Inside each container:
-192.168.128.15 gateway
-192.168.128.15 postgres
-192.168.128.15 redis
+10.0.1.15 gateway
+10.0.1.15 postgres
+10.0.1.15 redis
 ```
 
 This means you CAN use service hostnames (`postgres:5432`) but they all resolve to the same IP as `localhost`. Using `localhost` or `127.0.0.1` is more explicit and recommended.
@@ -266,7 +266,7 @@ When using external bridge mode, containers get IP via DHCP. For stable IPs:
 
 ```
 /ip/dhcp-server/lease/add \
-  address=192.168.128.50 \
+  address=10.0.1.50 \
   mac-address=AA:BB:CC:DD:EE:FF \
   server=dhcp1 \
   comment="app-myapp"
@@ -329,7 +329,7 @@ For **internal** mode apps with port mappings:
   action=dst-nat \
   chain=dstnat \
   comment="app docmost redirect to web" \
-  dst-address=192.168.128.1 \
+  dst-address=10.0.1.1 \
   dst-port=3013 \
   protocol=tcp \
   to-addresses=172.18.0.6 \
@@ -354,7 +354,7 @@ Configure with IPs in environment variables:
 ```yaml
 # In zigbee2mqtt configuration:
 mqtt:
-  server: mqtt://192.168.128.50:1883
+  server: mqtt://10.0.1.50:1883
 ```
 
 ## DNS Resolution Inside Containers

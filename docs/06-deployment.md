@@ -59,7 +59,7 @@ services:
 ### 2. Upload to router
 
 ```bash
-scp myapp.app.yml admin@192.168.128.1:/
+scp myapp.app.yml admin@10.0.1.1:/
 ```
 
 ### 3. Register the app
@@ -76,7 +76,7 @@ scp myapp.app.yml admin@192.168.128.1:/
 # Wait a moment, then get MAC
 /interface/veth/print where name~"myapp"
 # Create lease
-/ip/dhcp-server/lease/add address=192.168.128.60 mac-address=<MAC> server=dhcp1 comment="app-myapp"
+/ip/dhcp-server/lease/add address=10.0.1.60 mac-address=<MAC> server=dhcp1 comment="app-myapp"
 # Restart to pick up new IP
 /app disable myapp
 /app enable myapp
@@ -138,7 +138,7 @@ Write your YAML manifest following the [YAML Reference](03-yaml-reference.md). V
 /interface/veth/print where name~"myapp"
 
 # Note the MAC address and create lease
-/ip/dhcp-server/lease/add address=192.168.128.XX mac-address=AA:BB:CC:DD:EE:FF server=dhcp1 comment="app-myapp"
+/ip/dhcp-server/lease/add address=10.0.1.XX mac-address=AA:BB:CC:DD:EE:FF server=dhcp1 comment="app-myapp"
 
 # Restart to pick up new IP
 /app disable myapp
@@ -260,8 +260,8 @@ services:
 
 Upload code via SCP:
 ```bash
-scp -r ./dist admin@192.168.128.1:/nvme1/apps/myapp/app/dist/
-scp package.json admin@192.168.128.1:/nvme1/apps/myapp/app/
+scp -r ./dist admin@10.0.1.1:/nvme1/apps/myapp/app/dist/
+scp package.json admin@10.0.1.1:/nvme1/apps/myapp/app/
 ```
 
 Install dependencies inside container:
@@ -276,14 +276,14 @@ Recommended IP allocation for apps on bridge1:
 
 | IP | App | Purpose |
 |----|-----|---------|
-| 192.168.128.1 | Router | Management |
-| 192.168.128.15 | sia-gateway | Alarm receiver |
-| 192.168.128.16 | hue-loxone-bridge | Home automation |
-| 192.168.128.50 | mosquitto | MQTT broker |
-| 192.168.128.51 | zigbee2mqtt | Zigbee bridge |
-| 192.168.128.52 | nodered | Automation |
-| 192.168.128.54 | unifi | WiFi controller |
-| 192.168.128.55 | mqtt-logger | Monitoring |
-| 192.168.128.100 | mikrotik-controller | Router management |
+| 10.0.1.1 | Router | Management |
+| 10.0.1.15 | sia-gateway | Alarm receiver |
+| 10.0.1.16 | hue-loxone-bridge | Home automation |
+| 10.0.1.50 | mosquitto | MQTT broker |
+| 10.0.1.51 | zigbee2mqtt | Zigbee bridge |
+| 10.0.1.52 | nodered | Automation |
+| 10.0.1.54 | unifi | WiFi controller |
+| 10.0.1.55 | mqtt-logger | Monitoring |
+| 10.0.1.100 | mikrotik-controller | Router management |
 
 Reserve a range (e.g., .50-.120) for app IPs, keep it away from DHCP pool range.

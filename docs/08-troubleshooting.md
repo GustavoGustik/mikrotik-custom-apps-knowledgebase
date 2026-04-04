@@ -216,7 +216,7 @@ This sets a global limit. Per-container limits are not available via YAML.
 1. Verify Mosquitto is running: `/app print where name=mosquitto`
 2. Check Mosquitto IP: `/interface/veth/print where name~"mosquitto"`
 3. Verify Z2M config: `serial.port` and `mqtt.server` settings
-4. Test from router: `/tool/fetch url=http://192.168.128.50:1883 mode=http`
+4. Test from router: `/tool/fetch url=http://10.0.1.50:1883 mode=http`
 5. Check both apps on same bridge (bridge1)
 
 ## Node-RED MQTT Nodes Stuck "Connecting"

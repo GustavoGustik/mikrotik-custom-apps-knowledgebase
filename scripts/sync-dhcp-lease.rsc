@@ -11,7 +11,7 @@
 #   dhcpServer  - Your DHCP server name (usually "dhcp1")
 
 :local vethName "veth-app-unifi"
-:local desiredIP "192.168.128.54"
+:local desiredIP "10.0.1.54"
 :local leaseComment "app-unifi"
 :local dhcpServer "dhcp1"
 

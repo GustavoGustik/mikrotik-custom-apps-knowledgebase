@@ -78,9 +78,9 @@ redis → 172.18.0.5:6379
 
 **RouterOS** — ALL services share ONE IP:
 ```
-backend → 192.168.128.50:3000
-database → 192.168.128.50:5432
-redis → 192.168.128.50:6379
+backend → 10.0.1.50:3000
+database → 10.0.1.50:5432
+redis → 10.0.1.50:6379
 ```
 
 This means:

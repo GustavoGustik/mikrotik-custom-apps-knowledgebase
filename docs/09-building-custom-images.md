@@ -41,7 +41,7 @@ podman build --platform linux/arm64 -t myapp:v1.0 .
 podman save -o myapp-arm64.tar myapp:v1.0
 
 # Upload to router
-scp myapp-arm64.tar admin@192.168.128.1:/nvme1/
+scp myapp-arm64.tar admin@10.0.1.1:/nvme1/
 
 # Import on router
 /container/add file=nvme1/myapp-arm64.tar ...
@@ -173,9 +173,9 @@ Then upload your built code:
 npm run build
 
 # Upload to router
-scp -r dist/ admin@192.168.128.1:/nvme1/apps/myapp/app/dist/
-scp package.json admin@192.168.128.1:/nvme1/apps/myapp/app/
-scp -r node_modules/ admin@192.168.128.1:/nvme1/apps/myapp/app/node_modules/
+scp -r dist/ admin@10.0.1.1:/nvme1/apps/myapp/app/dist/
+scp package.json admin@10.0.1.1:/nvme1/apps/myapp/app/
+scp -r node_modules/ admin@10.0.1.1:/nvme1/apps/myapp/app/node_modules/
 ```
 
 **Pros**: No need to build Docker images, faster iteration

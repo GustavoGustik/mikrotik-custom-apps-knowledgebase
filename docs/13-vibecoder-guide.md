@@ -167,8 +167,8 @@ No Docker build needed. Upload code directly:
    ```
 3. **Upload your code** via SCP:
    ```bash
-   scp -r ./dist admin@192.168.128.1:/nvme1/apps/myapp/app/
-   scp package.json admin@192.168.128.1:/nvme1/apps/myapp/app/
+   scp -r ./dist admin@10.0.1.1:/nvme1/apps/myapp/app/
+   scp package.json admin@10.0.1.1:/nvme1/apps/myapp/app/
    ```
 4. **Install dependencies** inside container:
    ```
@@ -218,7 +218,7 @@ services:
   processor:
     image: docker.io/you/mqtt-processor:v1
     environment:
-      MQTT_BROKER: mqtt://192.168.128.50:1883
+      MQTT_BROKER: mqtt://10.0.1.50:1883
       MQTT_TOPICS: "sensor/#,device/#"
     volumes:
       - data:/app/data
@@ -235,7 +235,7 @@ services:
     ports:
       - "3000:3000:web"
     environment:
-      ROUTER_API: http://192.168.128.1/rest
+      ROUTER_API: http://10.0.1.1/rest
       ROUTER_USER: api-user
       ROUTER_PASS: api-password
 ```
@@ -365,7 +365,7 @@ After deploying, always reboot the router and verify everything comes back:
 
 ```bash
 # SSH into router
-ssh admin@192.168.128.1
+ssh admin@10.0.1.1
 
 # Check app status
 /app print where name=myapp
@@ -389,9 +389,9 @@ ssh admin@192.168.128.1
 Your apps can talk to the router via REST API:
 
 ```
-GET  http://192.168.128.1/rest/interface
-GET  http://192.168.128.1/rest/ip/address
-POST http://192.168.128.1/rest/tool/ping
+GET  http://10.0.1.1/rest/interface
+GET  http://10.0.1.1/rest/ip/address
+POST http://10.0.1.1/rest/tool/ping
 ```
 
 Authentication: HTTP Basic Auth with RouterOS credentials.

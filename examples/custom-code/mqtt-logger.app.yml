@@ -17,14 +17,14 @@ services:
       - "3000:3000:web"
     environment:
       WEB_PORT: "3000"
-      MQTT_BROKER: mqtt://192.168.128.50:1883
-      DB_HOST: 192.168.128.1
+      MQTT_BROKER: mqtt://10.0.1.50:1883
+      DB_HOST: 10.0.1.1
       DB_PORT: "5432"
       DB_NAME: mqtt_logger
       DB_USER: mqtt_logger
       DB_PASSWORD: mqtt_logger
       MQTT_TOPICS: "#"
-      SKIP_TOPICS: "z2m-steti/bridge/"
+      SKIP_TOPICS: "zigbee2mqtt/bridge/"
       BATCH_SIZE: "100"
       BATCH_INTERVAL_MS: "1000"
       NODE_ENV: production
