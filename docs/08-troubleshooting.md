@@ -203,6 +203,25 @@ image: quay.io/...     # Red Hat Quay
 /app add disabled=no network=bridge1 yaml="<yaml>"
 ```
 
+## "cannot remove builtin app" When Trying to Delete Custom App
+
+**Cause**: The `c` (CUSTOM) flag is lost after reboot (RouterOS 7.22 bug). Without it, the app is treated as a built-in catalog entry.
+
+**What works**:
+- `/app/disable` — stops the app
+- `/app/cleanup` — removes volumes, containers, and VETH
+
+**What doesn't work**:
+- `/app/remove` — refuses with `cannot remove builtin app`
+
+**The app entry stays in the list forever as disabled.** This is cosmetic — no resources are used — but the orphaned entry can't be removed.
+
+**Workaround**: Re-add the app (gets `c` flag), then remove immediately before rebooting:
+```
+/app add disabled=yes yaml="<same-yaml>"
+/app/remove [find where name="myapp" and disabled]
+```
+
 ## SSL/CRL Error During Image Pull
 
 **Symptom**: `SSL: certificate verify failed` or CRL-related errors

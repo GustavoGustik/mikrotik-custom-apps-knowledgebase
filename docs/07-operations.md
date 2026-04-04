@@ -22,10 +22,12 @@ Day-to-day management, updates, backup, and restore procedures.
 
 **The `c` (CUSTOM) flag does NOT survive a router reboot.** After restart, all apps lose the flag and appear identical to built-in catalog apps. Verified on RouterOS 7.22.1 stable (CCR2116-12G-4S+).
 
-Additionally:
-- Apps without `c` are treated as "builtin" — `/app/remove` refuses with `cannot remove builtin app`
-- The flag cannot be set or restored manually
-- It may be fixed in future RouterOS versions, but as of 7.22 it's ephemeral
+This has a serious side effect:
+- After reboot, ALL custom apps lose `c` and are treated as "builtin"
+- `/app/remove` refuses with `cannot remove builtin app` — **you cannot fully delete the app**
+- `/app/cleanup` removes volumes and containers, but **the app entry stays in the list forever** as disabled
+- The only way to fully remove is to re-add the app (so it gets `c` back), then immediately remove before rebooting — or factory reset
+- It may be fixed in future RouterOS versions, but as of 7.22.1 it's broken
 
 **Since you can't rely on the flag, use these approaches to distinguish custom from catalog apps:**
 
