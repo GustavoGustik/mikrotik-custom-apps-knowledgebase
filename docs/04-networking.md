@@ -168,9 +168,9 @@ Or via CLI: `/app add ... network=bridge1`
 | Security-sensitive app | **internal** | Isolated from LAN |
 | Cloudflare Tunnel | **internal** | Only outbound traffic needed |
 
-## Shared Network Namespace
+## Shared Network Namespace (Multi-Service Apps)
 
-**All services within one app share a single VETH interface and IP address.**
+**All services within one `/app` share a single VETH interface and IP address.**
 
 This means:
 - Services communicate via `localhost` / `127.0.0.1`
@@ -191,9 +191,54 @@ services:
       DATABASE_URL: postgresql://user:pass@127.0.0.1:5432/mydb
 ```
 
+### How it works under the hood
+
+The shared namespace is NOT a new feature exclusive to `/app`. It uses standard `/container` properties:
+
+1. **Same `interface=`** — All containers in the app are assigned the same VETH
+2. **`hosts=` entries** — Each container gets `/etc/hosts` with all service names pointing to the shared IP
+
+Real example from the UniFi app (2 containers, 1 VETH):
+```
+/container print proplist=name,interface,hosts where name~"unifi"
+
+NAME               INTERFACE       HOSTS
+app-unifi-mongodb  veth-app-unifi  mongodb:192.168.128.54, unifi:192.168.128.54
+app-unifi-unifi    veth-app-unifi  mongodb:192.168.128.54, unifi:192.168.128.54
+```
+
+### Can you do this manually with raw `/container`?
+
+**Yes.** You can achieve the same result without `/app`:
+
+```
+# 1. Create shared VETH
+/interface/veth/add name=my-shared-veth address=192.168.128.54/24 gateway=192.168.128.1
+
+# 2. Add to bridge
+/interface/bridge/port/add bridge=bridge1 interface=my-shared-veth
+
+# 3. Create containers with SAME interface and hosts
+/container/add remote-image=mongo:4.4.18 interface=my-shared-veth \
+  hosts=mongodb:192.168.128.54,unifi:192.168.128.54
+
+/container/add remote-image=lscr.io/linuxserver/unifi-network-application interface=my-shared-veth \
+  hosts=mongodb:192.168.128.54,unifi:192.168.128.54
+```
+
+**What `/app` adds on top** is the automation — from a single YAML file it automatically:
+- Creates the VETH and bridge port
+- Assigns the same `interface=` to all service containers
+- Generates `hosts=` entries for all services
+- Creates firewall NAT rules and reverse proxy
+- Manages startup order via `depends_on`
+- Handles cleanup, update, and lifecycle
+
+So the shared namespace is a **convenience feature of `/app`**, not a capability that `/container` lacks.
+
 ## Service Discovery via /etc/hosts
 
-RouterOS injects hostname entries into each container's `/etc/hosts`. All services in an app get entries for all other services:
+RouterOS injects hostname entries into each container's `/etc/hosts`. All services in an app get entries for all other services. This is done via the `hosts=` property on `/container`, which `/app` populates automatically.
 
 For a 3-service app (gateway, postgres, redis) on IP 192.168.128.15:
 ```

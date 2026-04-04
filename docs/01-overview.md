@@ -14,13 +14,13 @@ RouterOS has two levels of container management:
 - Manual firewall rules for port forwarding
 - Manual environment variables via `/container/envs`
 - Manual mounts via `/container/mounts`
-- No orchestration, no multi-service coordination
+- Shared network namespace IS possible (assign same `interface=` to multiple containers + manual `hosts=` entries) but requires manual setup of everything
+- No orchestration, no lifecycle coordination, no YAML
 
 ### Level 2: `/app` (High-Level — Custom Apps)
 - **Declarative YAML manifests** defining entire application stacks
 - **Automatic infrastructure**: VETH creation, bridge port assignment, firewall NAT rules, reverse proxy with HTTPS, DNS domains
-- **Multi-service apps**: Multiple containers sharing a single network namespace
-- **Service discovery** via `/etc/hosts` injection
+- **Multi-service apps**: Automatically configures multiple containers to share a single VETH (network namespace) with `hosts=` entries for service discovery — the same thing is technically possible with raw `/container`, but `/app` automates it from a single YAML file
 - **Placeholder variables** for runtime configuration (`[accessIP]`, `[containerIP]`, etc.)
 - **App catalog** with 110+ pre-configured apps
 - **Custom app stores** via HTTP/HTTPS URLs
