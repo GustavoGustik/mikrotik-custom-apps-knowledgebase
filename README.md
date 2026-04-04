@@ -39,6 +39,7 @@ A comprehensive knowledge base built from:
 | [Real-World Examples](docs/11-real-world-examples.md) | Production apps running on CCR2116 |
 | [Differences from Docker Compose](docs/12-differences-from-docker-compose.md) | Key differences for Docker users |
 | [Vibecoder & AI Guide](docs/13-vibecoder-guide.md) | Guide for AI-assisted development of custom apps |
+| [RouterOS Changelog](docs/14-routeros-changelog.md) | Container & app feature history across RouterOS versions |
 
 ## Example YAML Manifests
 
