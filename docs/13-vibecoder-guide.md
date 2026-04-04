@@ -293,25 +293,24 @@ services:
 
 ## Gotchas for AI/Vibecoders
 
-### 0. Deploy via CLI — Never Through WinBox Editor
+### 0. Make Custom Apps Distinguishable + Disable HTTPS
 
+RouterOS has a `c` (CUSTOM) flag but it **doesn't survive reboots** (RouterOS 7.22). After restart, your custom app looks identical to the 90+ built-in catalog apps. Use naming conventions:
+
+```yaml
+# In your YAML — use a prefix so it's obvious in WinBox:
+name: custom-my-app
+descr: "[CUSTOM] My app description"
+```
+
+Deploy and immediately disable HTTPS:
 ```bash
-# ALWAYS deploy custom apps this way:
 /app add disabled=yes network=bridge1 yaml="<your-yaml>"
-
-# Then verify the 'c' flag:
-/app print where name=myapp
-# Must show 'c' (CUSTOM) flag — e.g., Xc or Rc
+/app/set [find where name="custom-my-app"] use-https=no
+/app/enable [find where name="custom-my-app"]
 ```
 
-The `c` flag marks your app as custom. Without it, your app is indistinguishable from the 90+ built-in catalog apps in WinBox. This is a maintenance nightmare — nobody can tell what's native and what was manually deployed. Always verify after creation.
-
-**Immediately after creation, disable HTTPS:**
-```bash
-/app/set myapp use-https=no
-```
-
-Why: the default `use-https=yes` routes your app through `https://<app>.routingthecloud.com` which resolves to your public IP. Your custom LAN app lives at `http://10.0.1.50:3000` — the HTTPS domain is useless and makes `[accessIP]` return a domain instead of your LAN IP.
+Why `use-https=no`: the default `yes` routes your app through `https://<app>.routingthecloud.com` which resolves to your public IP. Your custom LAN app lives at `http://10.0.1.50:3000` — the HTTPS domain is useless and makes `[accessIP]` return a domain instead of your LAN IP.
 
 ### 1. Database Hostnames DON'T Work Like Docker
 

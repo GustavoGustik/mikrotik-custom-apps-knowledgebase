@@ -15,48 +15,39 @@ Day-to-day management, updates, backup, and restore procedures.
 |------|---------|-------------|
 | `X` | DISABLED | App is registered but not running |
 | `R` | RUNNING | App is active with all containers running |
-| `c` | CUSTOM | App was created via `/app add yaml="..."` (not from built-in catalog) |
+| `c` | CUSTOM | App was created via `/app add yaml="..."` |
 | `s` | FROM-APP-STORE | App was installed from a custom app-store URL |
 
-**The `c` flag is critical for maintaining order on the router.** Without it, a custom app is indistinguishable from the 90+ built-in catalog apps in WinBox/WebFig. During maintenance, audits, or handovers, nobody can tell what's native and what was manually deployed.
+### The `c` Flag is Unreliable (RouterOS 7.22)
 
-**How to ensure the `c` flag**: Always deploy custom apps via CLI:
-```
-/app add disabled=yes network=bridge1 yaml="<your-yaml>"
-```
+**The `c` (CUSTOM) flag does NOT survive a router reboot.** After restart, all apps lose the flag and appear identical to built-in catalog apps. Verified on RouterOS 7.22.1 stable (CCR2116-12G-4S+).
 
-After creation, verify:
-```
-/app print where name=myapp
-# Must show 'c' flag (Xc = disabled+custom, Rc = running+custom)
-```
+Additionally:
+- Apps without `c` are treated as "builtin" — `/app/remove` refuses with `cannot remove builtin app`
+- The flag cannot be set or restored manually
+- It may be fixed in future RouterOS versions, but as of 7.22 it's ephemeral
 
-**If `c` is missing**: The app was created through WinBox GUI or on an older RouterOS version. Unfortunately, **this cannot always be fixed retroactively**:
+**Since you can't rely on the flag, use these approaches to distinguish custom from catalog apps:**
 
-- RouterOS considers apps without `c` as "builtin" — `/app/remove` refuses with `cannot remove builtin app`
-- The only way to get the `c` flag is to create the app fresh via `/app add yaml="..."`
-- Apps created before the `c` flag was introduced are permanently stuck without it
-
-**Workaround if `/app/remove` fails**:
-```
-# 1. Disable the app
-/app/disable myapp
-
-# 2. Use /app/cleanup to delete its data (WARNING: destroys volumes!)
-/app/cleanup myapp
-
-# 3. Back up volume data BEFORE cleanup if needed:
-#    scp -r admin@router:/nvme1/apps/myapp/ ./backup/
-
-# 4. After cleanup, re-add:
-/app add disabled=yes network=bridge1 yaml="<yaml>"
-/app/set myapp use-https=no
-/app/enable myapp
+**1. Naming convention** — prefix custom app names:
+```yaml
+name: custom-sia-gateway      # clearly custom
+name: custom-hue-bridge       # clearly custom
+name: mosquitto                # clearly from catalog
 ```
 
-**Best practice**: Always create new custom apps via CLI from the start. Fixing the flag later is painful and risky.
+**2. Description prefix** — use the `descr` field:
+```yaml
+descr: "[CUSTOM] SIA DC-09 alarm receiver with MQTT and web UI"
+```
 
-There is no manual way to set or unset this flag — it is read-only and assigned automatically at creation time.
+**3. Maintain a list** — keep a record of your custom apps in git or on the router:
+```bash
+# Create a reference file on the router
+/file/add name=custom-apps.txt contents="hue-loxone-bridge\nmikrotik-controller\nmqtt-logger\nsia-gateway\nunifi"
+```
+
+**4. Category convention** — use non-standard categories for custom apps so they group separately in WinBox.
 
 ### Detailed Status
 ```

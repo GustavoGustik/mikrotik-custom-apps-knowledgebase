@@ -121,22 +121,14 @@ Write your YAML manifest following the [YAML Reference](03-yaml-reference.md). V
 /app add disabled=yes network=bridge1 yaml="<your-yaml>"
 ```
 
-### Step 3: Verify App Created and Has `c` Flag
+### Step 3: Verify App Created
 
 ```
 /app print where name=myapp
-# Should show Xc (disabled + custom)
-#                ^
-#                This 'c' flag is critical — it marks the app as CUSTOM
+# Should show X (disabled)
 ```
 
-**The `c` (CUSTOM) flag must be present on every custom app.** Without it, your app looks like a built-in catalog app in WinBox/WebFig, making it impossible to tell what's native and what was manually deployed. This creates confusion during maintenance, audits, and handovers.
-
-If the `c` flag is missing after creation, the app was created through a method that doesn't set it (e.g., older RouterOS version, WinBox editor). **This is hard to fix retroactively** — RouterOS treats apps without `c` as "builtin" and `/app/remove` refuses with `cannot remove builtin app`. See [Operations — App Flags](07-operations.md#app-flags) for the workaround.
-
-**Prevention is key**: Always create custom apps via CLI from the start.
-
-### Step 3b: Disable HTTPS on Custom LAN Apps
+### Step 4: Disable HTTPS on Custom LAN Apps
 
 By default, all apps get `use-https=yes`. This creates an automatic HTTPS reverse proxy with Let's Encrypt certificate at `https://<app>.xxx.routingthecloud.com`.
 
@@ -164,7 +156,7 @@ By default, all apps get `use-https=yes`. This creates an automatic HTTPS revers
 - Apps behind CGNAT (HTTPS is unreachable from outside anyway)
 - Apps where you want `[accessIP]` to resolve to the container's LAN IP, not a domain
 
-### Step 4: Configure Static IP (bridge1 mode)
+### Step 5: Configure Static IP (bridge1 mode)
 
 ```
 # Enable temporarily
@@ -181,7 +173,7 @@ By default, all apps get `use-https=yes`. This creates an automatic HTTPS revers
 /app enable myapp
 ```
 
-### Step 5: Wait for Image Pull
+### Step 6: Wait for Image Pull
 
 First deployment downloads images from registry. Monitor progress:
 
@@ -197,7 +189,7 @@ Or check container status:
 
 States: `E` (downloading), `N` (starting), `R` (running), `H` (healthy)
 
-### Step 6: Verify App Running
+### Step 7: Verify App Running
 
 ```
 /app print where name=myapp
@@ -207,13 +199,13 @@ States: `E` (downloading), `N` (starting), `R` (running), `H` (healthy)
 # All containers should be R (running)
 ```
 
-### Step 7: Test Access
+### Step 8: Test Access
 
 - Open the UI URL in browser
 - Check logs: `/container/log print where name~"myapp"`
 - Test from LAN device
 
-### Step 8: Test Reboot Survival
+### Step 9: Test Reboot Survival
 
 ```
 /system reboot

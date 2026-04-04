@@ -42,6 +42,6 @@ Schema: `https://tikoci.github.io/restraml/routeros-app-yaml-schema.latest.json`
 
 ## When Deploying
 
-- **Always deploy via CLI**: `/app add disabled=yes network=bridge1 yaml="<yaml>"` — this sets the `c` (CUSTOM) flag
-- **Always verify `c` flag after creation**: `/app print where name=myapp` must show `c`
-- Without the `c` flag, the custom app is indistinguishable from 90+ built-in catalog apps in WinBox, causing confusion during maintenance
+- **Deploy via CLI**: `/app add disabled=yes network=bridge1 yaml="<yaml>"`
+- **Disable HTTPS**: `/app/set myapp use-https=no` (for LAN-only custom apps)
+- **The `c` (CUSTOM) flag does NOT survive reboots** (RouterOS 7.22) — don't rely on it. Instead, use naming conventions: prefix custom app names (e.g., `custom-my-app`) or descriptions (`[CUSTOM] ...`) to distinguish from catalog apps

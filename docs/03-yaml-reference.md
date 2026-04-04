@@ -2,23 +2,27 @@
 
 The YAML manifest is the core of every custom app. It defines services, networking, volumes, configuration files, and metadata.
 
-## Deployment Rule: Always Use `/app add yaml="..."`
+## How to Distinguish Custom Apps from Catalog
 
-Custom apps **must** be deployed via CLI with inline or file-sourced YAML:
+RouterOS 7.22 has a `c` (CUSTOM) flag but it **does not survive reboots**. After restart all apps look identical. To maintain order on your router, use these conventions in your YAML:
 
-```
-/app add disabled=yes network=bridge1 yaml="<your-yaml>"
-```
-
-This is the only method that reliably sets the **`c` (CUSTOM) flag** on the app. The flag is critical for maintaining order on the router — it clearly distinguishes your custom apps from the 90+ built-in catalog apps in WinBox/WebFig.
-
-After creating the app, always verify:
-```
-/app print where name=myapp
-# Must show 'c' flag (e.g., Xc for disabled+custom)
+**Option A: Name prefix**
+```yaml
+name: custom-my-app           # instantly recognizable as non-catalog
 ```
 
-Other methods (WinBox editor, older RouterOS versions) may not set the `c` flag, making custom apps indistinguishable from native ones.
+**Option B: Description prefix**
+```yaml
+descr: "[CUSTOM] My app description here"
+```
+
+**Option C: Both** (recommended)
+```yaml
+name: custom-my-app
+descr: "[CUSTOM] My app description here"
+```
+
+See [Operations — App Flags](07-operations.md#the-c-flag-is-unreliable-routeros-722) for full details.
 
 ## Complete Structure
 
