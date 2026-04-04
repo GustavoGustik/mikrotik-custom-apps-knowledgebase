@@ -88,6 +88,22 @@ networks:
 | `url-path` | string | No | Path suffix appended to access URL (e.g., `/admin`) |
 | `auto-update` | boolean | No | Auto-pull latest images periodically |
 
+### Settings NOT in YAML (set via `/app/set`)
+
+Some important settings are **not part of the YAML manifest** — they are set on the `/app` object after creation:
+
+| Setting | Command | Recommended for custom LAN apps |
+|---------|---------|--------------------------------|
+| `use-https` | `/app/set myapp use-https=no` | **`no`** — avoids unnecessary reverse proxy, keeps `[accessIP]` as LAN IP |
+| `network` | `/app/set myapp network=bridge1` | `bridge1` for LAN access |
+| `pvid` | `/app/set myapp pvid=10` | Only if using VLANs |
+
+**Why `use-https=no` for custom LAN apps**: The default `use-https=yes` creates a reverse proxy at `https://<app>.routingthecloud.com` with Let's Encrypt. This is great for apps with public access, but for custom apps on your LAN it causes problems:
+- The domain resolves to your public IP, not the LAN IP where the app actually runs
+- Behind CGNAT the domain is unreachable
+- The `[accessIP]` placeholder resolves to a domain instead of your LAN IP, breaking CORS configs
+- Creates unnecessary reverse-proxy SNI rules
+
 ## Service Fields
 
 ### `image` (Required)

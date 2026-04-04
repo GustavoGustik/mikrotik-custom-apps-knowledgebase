@@ -306,6 +306,13 @@ services:
 
 The `c` flag marks your app as custom. Without it, your app is indistinguishable from the 90+ built-in catalog apps in WinBox. This is a maintenance nightmare — nobody can tell what's native and what was manually deployed. Always verify after creation.
 
+**Immediately after creation, disable HTTPS:**
+```bash
+/app/set myapp use-https=no
+```
+
+Why: the default `use-https=yes` routes your app through `https://<app>.routingthecloud.com` which resolves to your public IP. Your custom LAN app lives at `http://10.0.1.50:3000` — the HTTPS domain is useless and makes `[accessIP]` return a domain instead of your LAN IP.
+
 ### 1. Database Hostnames DON'T Work Like Docker
 
 ```yaml

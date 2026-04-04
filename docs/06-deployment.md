@@ -142,6 +142,34 @@ If the `c` flag is missing after creation, the app was likely added through a me
 # Now should show Xc
 ```
 
+### Step 3b: Disable HTTPS on Custom LAN Apps
+
+By default, all apps get `use-https=yes`. This creates an automatic HTTPS reverse proxy with Let's Encrypt certificate at `https://<app>.xxx.routingthecloud.com`.
+
+**For custom apps running on the LAN, this is usually wrong:**
+
+- The `routingthecloud.com` domain resolves to your public IP, not your LAN IP
+- Behind CGNAT, the domain is unreachable entirely
+- Your apps are on the LAN at `http://10.0.1.50:3000` — you access them by IP, not by domain
+- The reverse proxy creates unnecessary SNI rules and log noise
+- The `[accessIP]` placeholder gets replaced with a domain name instead of your LAN IP, which can break CORS and other configs
+
+**Fix**: Disable HTTPS on every custom app right after creation:
+
+```
+/app/set myapp use-https=no
+```
+
+**When to KEEP `use-https=yes`**:
+- Catalog apps (mosquitto, nodered, zigbee2mqtt) — they're designed for it
+- Apps you want to access from outside your network via the routingthecloud.com domain
+- Apps behind a public IP where you want free Let's Encrypt HTTPS
+
+**When to set `use-https=no`**:
+- Custom apps accessed only from your LAN
+- Apps behind CGNAT (HTTPS is unreachable from outside anyway)
+- Apps where you want `[accessIP]` to resolve to the container's LAN IP, not a domain
+
 ### Step 4: Configure Static IP (bridge1 mode)
 
 ```
