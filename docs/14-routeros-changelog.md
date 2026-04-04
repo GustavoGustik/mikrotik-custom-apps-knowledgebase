@@ -1,6 +1,65 @@
 # RouterOS Changelog: Container & App Features
 
-Complete history of container, `/app`, VETH, and reverse-proxy features across RouterOS versions. Extracted from official MikroTik changelogs.
+Complete history of container, `/app`, VETH, and reverse-proxy features across RouterOS versions. Extracted from official MikroTik changelogs. Includes beta/RC versions to show development direction.
+
+---
+
+## 7.23beta2 (Testing) — Major Container Upgrades Coming
+
+**This beta shows where MikroTik is heading.** Many of our documented limitations are being addressed.
+
+### /app system — significant improvements
+- **`app` — allow updating YAML for existing custom app** (forces cleanup) — currently you must delete and recreate!
+- **`app` — allow updating name parameter from YAML for custom apps**
+- `app` — added possibility to set app command-line parameter from CLI
+- `app` — allow apps on xfs file system (not just ext4/btrfs)
+- `app` — allow overriding default stop signal
+- **`app` — allow parsing DNS in YAML** — new YAML capability
+- `app` — allow passing stop signal from YAML and passing it to container as default
+- **`app` — apps now check for port availability** — apps will not start on "internal" if app masks existing service
+- `app` — automatically pass any required devices to container (e.g., otbr zigbee)
+- `app` — fixed saving custom apps
+- **`app` — fixed YAML not exported for custom apps** — export was broken
+- `app` — improved app networks and port behavior
+- `app` — improved YAML error message
+- `app` — stability fixes for the "/app" menu
+
+### New catalog apps
+- `app` — added **docker-with-dockge, docker-with-komodo, docker-with-portainer** — Docker-in-container with orchestration UIs!
+- `app` — added HA-otbr-matter, odoo, otbr, stalwart apps
+
+### Container engine — restart policies and OOM detection
+- **`container` — added restart-policy=no/always/on-failure** — proper restart policies!
+- **`container` — added stop-on-unhealthy** — auto-stop unhealthy containers
+- **`container` — added restart-count, restart-interval, restart-max-count** — fine-grained restart control
+- `container` — allow disabling individual container environment variables without deleting them
+- `container` — allow picking mount source directories with the file picker in WinBox
+- **`container` — allow setting memory-max global and per container** — hard memory limits!
+- `container` — allow user-defined mounts overriding /sys and /dev
+- `container` — clean up layers of non-existing containers
+- **`container` — detect and show containers killed by out-of-memory killer** — OOM visibility
+- `container` — fixed container entrypoint and shell override by user
+- `container` — fixed losing container after reboot
+- `container` — improved running container instance memory usage
+- `container` — layers are now accessible under "Layers" tab
+- `smb` — do not start /ip smb server on container interfaces
+
+### What this means for custom apps
+
+Several of our documented limitations are being fixed:
+
+| Current Limitation (7.22) | Fix in 7.23beta2 |
+|--------------------------|------------------|
+| Can't edit YAML in-place (must delete/recreate) | `allow updating YAML for existing custom app` |
+| No restart policies in YAML | `restart-policy=no/always/on-failure` |
+| No memory hard limits | `memory-max global and per container` |
+| No OOM visibility | `detect and show containers killed by OOM` |
+| YAML export broken for custom apps | `fixed YAML not exported for custom apps` |
+| No DNS in YAML | `allow parsing DNS in YAML` |
+| No port conflict detection | `apps check for port availability` |
+| Docker/Portainer not available | `docker-with-portainer/dockge/komodo` apps |
+
+---
 
 ## 7.22.1 (2026-03-23) — Current Stable
 
@@ -176,6 +235,37 @@ Shell and stability improvements:
 | 7.21 | 2026-01 | **`/app` menu introduced**, hosts setting, VETH DHCP improvements, app catalog |
 | 7.22 | 2026-03 | **Custom apps go stable**, reverse-proxy, app-store URLs, health checks, zstd |
 | 7.22.1 | 2026-03 | Bug fixes |
+| **7.23beta2** | Testing | **YAML in-place edit, restart policies, memory-max, OOM detection, Portainer/Dockge** |
+
+## Development Direction (from 7.23 betas)
+
+Based on the beta changelogs, MikroTik is actively investing in containers/apps. Key directions:
+
+### 1. Moving Toward Full Docker Compose Parity
+- Restart policies (`no/always/on-failure`), health-based stop, restart limits
+- Memory hard limits (`memory-max`)
+- DNS in YAML
+- Stop signals configurable from YAML
+- Port availability checks
+
+### 2. In-Place YAML Updates
+The biggest pain point (delete/recreate to change YAML) is being addressed. In 7.23+, you can update YAML of existing custom apps directly — it forces a cleanup but preserves the app entry.
+
+### 3. Docker-in-Container (Portainer/Dockge/Komodo)
+MikroTik is adding catalog apps that run Docker inside a container, with web-based management UIs. This signals that they see RouterOS containers as a platform for running more complex stacks, not just simple single-purpose apps.
+
+### 4. IoT and Hardware Integration
+OTBR (OpenThread Border Router) and Matter apps show MikroTik positioning routers as smart home hubs — Zigbee/Thread/Matter coordination running natively on the router.
+
+### 5. Better Error Handling
+OOM detection, improved YAML error messages, port conflict prevention — the developer experience is maturing.
+
+### What's Still Missing (as of 7.23beta2)
+- `c` flag persistence across reboots (our #1 issue)
+- Per-container network isolation (all services share one VETH)
+- `build:` context (must use pre-built images)
+- Service-name DNS resolution (still must use localhost/IPs)
+- `/app/remove` for apps without `c` flag
 
 ## Known Issues (from our testing on 7.22.1)
 
