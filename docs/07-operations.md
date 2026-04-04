@@ -7,8 +7,20 @@ Day-to-day management, updates, backup, and restore procedures.
 ### List All Apps
 ```
 /app print
-# Flags: X=disabled, R=running, c=custom, s=from-store
 ```
+
+### App Flags
+
+| Flag | Meaning | Description |
+|------|---------|-------------|
+| `X` | DISABLED | App is registered but not running |
+| `R` | RUNNING | App is active with all containers running |
+| `c` | CUSTOM | App was created via `/app add yaml="..."` (not from built-in catalog) |
+| `s` | FROM-APP-STORE | App was installed from a custom app-store URL |
+
+**About the `c` flag**: According to MikroTik documentation, apps added via `/app add yaml="..."` should be marked as custom. In practice, the flag may not appear on apps created on older RouterOS versions or through WinBox GUI. There is no manual way to set or unset this flag — it is read-only and assigned automatically at creation time.
+
+If your custom app doesn't show `c`, it still works identically. The flag is purely informational for distinguishing user-created apps from the built-in catalog in the UI.
 
 ### Detailed Status
 ```
