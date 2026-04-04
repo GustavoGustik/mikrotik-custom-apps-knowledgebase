@@ -78,16 +78,29 @@ image: docker.io/library/postgres:16-alpine  # Not just postgres:16-alpine
 
 **Cause**: Another service (WebFig, custom reverse proxy) is already using port 443
 
-**Fix**:
+**Cause**: The `www-ssl` service (WebFig HTTPS) and `reverse-proxy` service (app HTTPS) both default to port 443. They can't share it — the first one to start wins.
+
+**Fix** (recommended — do this once during initial setup):
 ```
-# Option 1: Move WebFig to different port
+# 1. Move WebFig HTTPS to port 8443
 /ip/service/set www-ssl port=8443
 
-# Option 2: Disable HTTPS for specific app
-/app/set myapp use-https=no
+# 2. Restart reverse-proxy to claim port 443
+/ip/service/set reverse-proxy disabled=yes
+/ip/service/set reverse-proxy disabled=no
 
-# Option 3: Disable WebFig SSL entirely
-/ip/service/set www-ssl disabled=yes
+# 3. Verify — errors should be gone
+/ip/service/print where name=reverse-proxy
+/app print where !disabled
+```
+
+WebFig remains accessible at `https://<router-ip>:8443`. Apps get HTTPS at `https://<name>.<device>.routingthecloud.com`.
+
+See also: [Prerequisites — Step 5](02-prerequisites.md#step-5-free-port-443-for-app-reverse-proxy)
+
+**Alternative per-app**: If you don't need HTTPS for a specific app:
+```
+/app/set myapp use-https=no
 ```
 
 ## "add bridge port failed: device already added as bridge port"

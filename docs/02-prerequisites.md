@@ -97,7 +97,37 @@ Expected output:
          certificate: apps-*.xxx.routingthecloud.com
 ```
 
-## Step 5: Verify Container Configuration
+## Step 5: Free Port 443 for App Reverse Proxy
+
+RouterOS uses port 443 for both `www-ssl` (WebFig HTTPS) and `reverse-proxy` (automatic HTTPS for apps). They can't share it — whichever starts first wins, the other fails with:
+
+```
+reverse-proxy: bind error: cannot bind to port 443: Address in use (12)
+```
+
+This error shows as a red warning on **every app** in WinBox/WebFig. Fix by moving WebFig HTTPS to a different port:
+
+```
+# Move WebFig HTTPS to port 8443
+/ip/service/set www-ssl port=8443
+
+# Restart the reverse-proxy service to claim port 443
+/ip/service/set reverse-proxy disabled=yes
+/ip/service/set reverse-proxy disabled=no
+
+# Verify — no error should appear
+/ip/service/print where name=reverse-proxy
+/ip/reverse-proxy/print
+```
+
+After this, WebFig HTTPS is at `https://<router-ip>:8443` and apps get automatic HTTPS via `https://<app-name>.<device>.routingthecloud.com`.
+
+**Alternative**: If you don't need HTTPS for apps, disable it per-app:
+```
+/app/set myapp use-https=no
+```
+
+## Step 6: Verify Container Configuration
 
 ```
 /container/config print
