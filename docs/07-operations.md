@@ -18,9 +18,28 @@ Day-to-day management, updates, backup, and restore procedures.
 | `c` | CUSTOM | App was created via `/app add yaml="..."` (not from built-in catalog) |
 | `s` | FROM-APP-STORE | App was installed from a custom app-store URL |
 
-**About the `c` flag**: According to MikroTik documentation, apps added via `/app add yaml="..."` should be marked as custom. In practice, the flag may not appear on apps created on older RouterOS versions or through WinBox GUI. There is no manual way to set or unset this flag — it is read-only and assigned automatically at creation time.
+**The `c` flag is critical for maintaining order on the router.** Without it, a custom app is indistinguishable from the 90+ built-in catalog apps in WinBox/WebFig. During maintenance, audits, or handovers, nobody can tell what's native and what was manually deployed.
 
-If your custom app doesn't show `c`, it still works identically. The flag is purely informational for distinguishing user-created apps from the built-in catalog in the UI.
+**How to ensure the `c` flag**: Always deploy custom apps via CLI:
+```
+/app add disabled=yes network=bridge1 yaml="<your-yaml>"
+```
+
+After creation, verify:
+```
+/app print where name=myapp
+# Must show 'c' flag (Xc = disabled+custom, Rc = running+custom)
+```
+
+**If `c` is missing**: The app was likely created through WinBox GUI or on an older RouterOS version. Fix by recreating:
+```
+/app disable myapp
+/app remove myapp
+/app add disabled=yes network=bridge1 yaml="<same-yaml>"
+# Verify: /app print where name=myapp → should show 'c'
+```
+
+There is no manual way to set or unset this flag — it is read-only and assigned automatically at creation time.
 
 ### Detailed Status
 ```

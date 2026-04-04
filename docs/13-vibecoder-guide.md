@@ -293,6 +293,19 @@ services:
 
 ## Gotchas for AI/Vibecoders
 
+### 0. Deploy via CLI — Never Through WinBox Editor
+
+```bash
+# ALWAYS deploy custom apps this way:
+/app add disabled=yes network=bridge1 yaml="<your-yaml>"
+
+# Then verify the 'c' flag:
+/app print where name=myapp
+# Must show 'c' (CUSTOM) flag — e.g., Xc or Rc
+```
+
+The `c` flag marks your app as custom. Without it, your app is indistinguishable from the 90+ built-in catalog apps in WinBox. This is a maintenance nightmare — nobody can tell what's native and what was manually deployed. Always verify after creation.
+
 ### 1. Database Hostnames DON'T Work Like Docker
 
 ```yaml

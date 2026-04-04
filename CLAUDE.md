@@ -39,3 +39,9 @@ Schema: `https://tikoci.github.io/restraml/routeros-app-yaml-schema.latest.json`
 3. Use `127.0.0.1` not service names for inter-service DB connections
 4. Pin image tags in production (never `:latest`)
 5. Use `restart: unless-stopped` for persistence across reboots
+
+## When Deploying
+
+- **Always deploy via CLI**: `/app add disabled=yes network=bridge1 yaml="<yaml>"` — this sets the `c` (CUSTOM) flag
+- **Always verify `c` flag after creation**: `/app print where name=myapp` must show `c`
+- Without the `c` flag, the custom app is indistinguishable from 90+ built-in catalog apps in WinBox, causing confusion during maintenance

@@ -2,6 +2,24 @@
 
 The YAML manifest is the core of every custom app. It defines services, networking, volumes, configuration files, and metadata.
 
+## Deployment Rule: Always Use `/app add yaml="..."`
+
+Custom apps **must** be deployed via CLI with inline or file-sourced YAML:
+
+```
+/app add disabled=yes network=bridge1 yaml="<your-yaml>"
+```
+
+This is the only method that reliably sets the **`c` (CUSTOM) flag** on the app. The flag is critical for maintaining order on the router — it clearly distinguishes your custom apps from the 90+ built-in catalog apps in WinBox/WebFig.
+
+After creating the app, always verify:
+```
+/app print where name=myapp
+# Must show 'c' flag (e.g., Xc for disabled+custom)
+```
+
+Other methods (WinBox editor, older RouterOS versions) may not set the `c` flag, making custom apps indistinguishable from native ones.
+
 ## Complete Structure
 
 ```yaml

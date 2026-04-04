@@ -121,11 +121,25 @@ Write your YAML manifest following the [YAML Reference](03-yaml-reference.md). V
 /app add disabled=yes network=bridge1 yaml="<your-yaml>"
 ```
 
-### Step 3: Verify App Created
+### Step 3: Verify App Created and Has `c` Flag
 
 ```
 /app print where name=myapp
-# Should show X (disabled)
+# Should show Xc (disabled + custom)
+#                ^
+#                This 'c' flag is critical — it marks the app as CUSTOM
+```
+
+**The `c` (CUSTOM) flag must be present on every custom app.** Without it, your app looks like a built-in catalog app in WinBox/WebFig, making it impossible to tell what's native and what was manually deployed. This creates confusion during maintenance, audits, and handovers.
+
+If the `c` flag is missing after creation, the app was likely added through a method that doesn't set it (e.g., older RouterOS version, WinBox editor). Fix by recreating:
+
+```
+/app disable myapp
+/app remove myapp
+/app add disabled=yes network=bridge1 yaml="<same-yaml>"
+/app print where name=myapp
+# Now should show Xc
 ```
 
 ### Step 4: Configure Static IP (bridge1 mode)
