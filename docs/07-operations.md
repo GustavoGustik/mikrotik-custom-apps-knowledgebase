@@ -31,13 +31,30 @@ After creation, verify:
 # Must show 'c' flag (Xc = disabled+custom, Rc = running+custom)
 ```
 
-**If `c` is missing**: The app was likely created through WinBox GUI or on an older RouterOS version. Fix by recreating:
+**If `c` is missing**: The app was created through WinBox GUI or on an older RouterOS version. Unfortunately, **this cannot always be fixed retroactively**:
+
+- RouterOS considers apps without `c` as "builtin" — `/app/remove` refuses with `cannot remove builtin app`
+- The only way to get the `c` flag is to create the app fresh via `/app add yaml="..."`
+- Apps created before the `c` flag was introduced are permanently stuck without it
+
+**Workaround if `/app/remove` fails**:
 ```
-/app disable myapp
-/app remove myapp
-/app add disabled=yes network=bridge1 yaml="<same-yaml>"
-# Verify: /app print where name=myapp → should show 'c'
+# 1. Disable the app
+/app/disable myapp
+
+# 2. Use /app/cleanup to delete its data (WARNING: destroys volumes!)
+/app/cleanup myapp
+
+# 3. Back up volume data BEFORE cleanup if needed:
+#    scp -r admin@router:/nvme1/apps/myapp/ ./backup/
+
+# 4. After cleanup, re-add:
+/app add disabled=yes network=bridge1 yaml="<yaml>"
+/app/set myapp use-https=no
+/app/enable myapp
 ```
+
+**Best practice**: Always create new custom apps via CLI from the start. Fixing the flag later is painful and risky.
 
 There is no manual way to set or unset this flag — it is read-only and assigned automatically at creation time.
 

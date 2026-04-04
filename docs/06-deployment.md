@@ -132,15 +132,9 @@ Write your YAML manifest following the [YAML Reference](03-yaml-reference.md). V
 
 **The `c` (CUSTOM) flag must be present on every custom app.** Without it, your app looks like a built-in catalog app in WinBox/WebFig, making it impossible to tell what's native and what was manually deployed. This creates confusion during maintenance, audits, and handovers.
 
-If the `c` flag is missing after creation, the app was likely added through a method that doesn't set it (e.g., older RouterOS version, WinBox editor). Fix by recreating:
+If the `c` flag is missing after creation, the app was created through a method that doesn't set it (e.g., older RouterOS version, WinBox editor). **This is hard to fix retroactively** — RouterOS treats apps without `c` as "builtin" and `/app/remove` refuses with `cannot remove builtin app`. See [Operations — App Flags](07-operations.md#app-flags) for the workaround.
 
-```
-/app disable myapp
-/app remove myapp
-/app add disabled=yes network=bridge1 yaml="<same-yaml>"
-/app print where name=myapp
-# Now should show Xc
-```
+**Prevention is key**: Always create custom apps via CLI from the start.
 
 ### Step 3b: Disable HTTPS on Custom LAN Apps
 
