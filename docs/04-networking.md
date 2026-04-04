@@ -299,25 +299,93 @@ This sets the VETH's PVID on the bridge, which tags traffic with VLAN ID 10 when
 
 ## HTTPS and Reverse Proxy
 
-When `use-https=yes` (default for all apps):
+### How It Works (Full Chain)
 
-1. RouterOS creates a reverse proxy SNI rule:
-   ```
-   /ip/reverse-proxy/add certificate=apps-*.xxx.routingthecloud.com \
-     ip-address=<container-ip> port=<first-web-port> \
-     sni=<app-name>.xxx.routingthecloud.com
-   ```
+When `use-https=yes` (default for all apps), RouterOS sets up an automatic HTTPS chain:
 
-2. Automatic Let's Encrypt certificate via `/ip/cloud`
+```
+Browser
+  │ https://nodered.hkc0avwn3dr.routingthecloud.com
+  │
+  ▼
+DNS (routingthecloud.com)
+  │ resolves to router's public IP (from /ip/cloud DDNS)
+  │
+  ▼
+Router port 443 (/ip/service reverse-proxy)
+  │ SNI matching: nodered.hkc0avwn3dr.routingthecloud.com
+  │ TLS termination with Let's Encrypt wildcard certificate
+  │
+  ▼
+Container IP:port (e.g., 10.0.1.52:1880)
+  │ plain HTTP to the container
+```
 
-3. App accessible at: `https://<app-name>.<device-hash>.routingthecloud.com`
+**Step by step:**
 
-4. Placeholder variables change when HTTPS is active:
-   - `[accessIP]` → domain name instead of IP
-   - `[accessPort]` → `443`
-   - `[accessProto]` → `https`
+1. **`/ip/cloud`** (DDNS) registers the router's public IP as `<serial>.routingthecloud.com`
+2. **ACME/Let's Encrypt** issues a **wildcard certificate** `*.hkc0avwn3dr.routingthecloud.com` — the DNS-01 challenge is handled by MikroTik's cloud service, not by the router
+3. **`/ip/reverse-proxy`** listens on port 443, routes by SNI to the right container
+4. Each app gets its own subdomain: `<app-name>.<serial>.routingthecloud.com`
 
-**Common issue**: "reverse-proxy: bind error: cannot bind to port 443" — This appears when another service (e.g., WebFig on :443) is already using port 443. Solution: move WebFig to a different port or disable HTTPS for WebFig.
+Verify on your router:
+```
+# DDNS domain and public IP
+/ip/cloud/print
+
+# Wildcard certificate (flag 'a' = ACME-managed)
+/certificate/print where name~"apps"
+
+# Reverse proxy SNI rules (auto-created per app)
+/ip/reverse-proxy/print
+```
+
+### Public IP vs CGNAT
+
+| Situation | Certificate | DDNS Domain | HTTPS from Internet | HTTPS from LAN |
+|-----------|------------|-------------|--------------------:|---------------:|
+| **Public IP** (static or dynamic) | Works | Resolves to your IP | **Works** | Works (hairpin NAT needed) |
+| **Behind CGNAT** | **Works** (DNS-01 challenge via MikroTik cloud) | Resolves to CGNAT shared IP | **Doesn't work** (port 443 not reachable) | Usually doesn't work (domain resolves to wrong IP) |
+| **Double NAT** (e.g., behind ISP router) | **Works** | Resolves to outer public IP | **Works** if port 443 forwarded | Works with hairpin NAT |
+
+**Key insight**: The Let's Encrypt certificate is always issued successfully regardless of your NAT situation, because MikroTik's cloud handles the DNS-01 validation challenge — the router itself doesn't need to be reachable on port 80/443 for the challenge.
+
+**But**: The actual HTTPS access to apps only works if port 443 on the router is reachable from where you're connecting. Behind CGNAT, it's not reachable from the internet.
+
+### What To Do Behind CGNAT
+
+If you're behind CGNAT and need external HTTPS access to apps:
+
+1. **Use Cloudflare Tunnel** — deploy the `cloudflared` app from catalog, configure a tunnel to expose your apps
+2. **Use WireGuard/ZeroTier VPN** — connect to your LAN first, then access apps via LAN IP
+3. **Request public IP** from your ISP (if available)
+4. **Use IPv6** — if your ISP gives you a public IPv6, apps are reachable via IPv6 (configure firewall!)
+
+If you only need LAN access, HTTPS still works — add a static DNS entry on the router pointing `*.routingthecloud.com` to the router's LAN IP:
+
+```
+/ip/dns/static/add name="*.hkc0avwn3dr.routingthecloud.com" address=10.0.1.1
+```
+
+### Placeholder Variables with HTTPS
+
+When HTTPS is active, placeholder values change:
+
+| Variable | HTTP value | HTTPS value |
+|----------|-----------|-------------|
+| `[accessIP]` | `10.0.1.52` | `nodered.xxx.routingthecloud.com` |
+| `[accessPort]` | `1880` | `443` |
+| `[accessProto]` | `http` | `https` |
+
+This can break apps that use `[accessIP]` in CORS headers or trusted domains — the app suddenly sees a domain instead of an IP. Fix by setting `use-https=no` on apps that don't need it:
+
+```
+/app/set myapp use-https=no
+```
+
+### Port 443 Conflict (Common Setup Issue)
+
+`www-ssl` (WebFig HTTPS) defaults to port 443, same as `reverse-proxy`. See [Prerequisites — Step 5](02-prerequisites.md#step-5-free-port-443-for-app-reverse-proxy) and [Troubleshooting](08-troubleshooting.md#reverse-proxy-bind-error-cannot-bind-to-port-443) for the fix.
 
 ## Firewall Rules (Auto-Generated)
 
