@@ -1,0 +1,58 @@
+# yaml-language-server: $schema=https://tikoci.github.io/restraml/routeros-app-yaml-schema.latest.json
+# Hue-Loxone Bridge — custom Docker image with inline JSON config
+# Demonstrates: custom image + configs with target_volume + custom command
+# Deploy: /app add disabled=no network=bridge1 yaml=[/file get hue-loxone-bridge.app.yml contents]
+name: hue-loxone-bridge
+descr: Bidirectional bridge between Philips Hue and Loxone Miniserver
+page: https://github.com/gustavogustik/hue-loxone-bridge
+category: home-automation
+default-credentials: none
+url-path: /
+auto-update: false
+services:
+  bridge:
+    image: docker.io/gustavogustik/hue-loxone-bridge:latest
+    ports:
+      - "3100:3000:web"
+    environment:
+      NODE_ENV: production
+      TZ: Europe/Prague
+    command: "node /app/index.js --config /data/config.json"
+    volumes:
+      - data:/data
+    stop_grace_period: "10s"
+    restart: unless-stopped
+configs:
+  'config_json':
+    target_volume: data
+    target_path: 'config.json'
+    content: |
+      {
+        "server": { "port": 3000 },
+        "hue": {
+          "bridgeIP": "192.168.11.7",
+          "appKey": "your-hue-api-key-here"
+        },
+        "loxone": {
+          "host": "192.168.11.160",
+          "port": 80,
+          "user": "admin",
+          "password": "your-loxone-password"
+        },
+        "bridge": {
+          "antiLoopExpireMs": 30000,
+          "defaultTransitionMs": 1000
+        },
+        "logging": { "level": "info" },
+        "mappings": [
+          {
+            "name": "Living Room",
+            "hueId": "your-hue-light-id",
+            "loxoneUuid": "your-loxone-uuid/AI1",
+            "loxoneType": "dmx",
+            "maxBrightness": 100
+          }
+        ]
+      }
+volumes:
+  data: {}

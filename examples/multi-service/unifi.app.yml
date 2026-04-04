@@ -1,0 +1,44 @@
+# yaml-language-server: $schema=https://tikoci.github.io/restraml/routeros-app-yaml-schema.latest.json
+# UniFi Network Application — multi-service (MongoDB + UniFi)
+# CRITICAL: mongo:4.4.18 is the MAX version for ARM Cortex-A72 (CCR2116, CCR2216)
+# Deploy: /app add disabled=no network=bridge1 yaml=[/file get unifi.app.yml contents]
+name: unifi
+descr: UniFi Network Application for WiFi AP management
+page: https://ui.com/
+category: network
+default-credentials: onboarding
+url-path: /
+auto-update: false
+services:
+  mongodb:
+    image: mongo:4.4.18
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: unifi
+      MONGO_INITDB_ROOT_PASSWORD: unifi
+    volumes:
+      - unifi_db:/data/db
+    restart: unless-stopped
+  unifi:
+    image: lscr.io/linuxserver/unifi-network-application:latest
+    ports:
+      - "8443:8443:web"
+      - "8080:8080:tcp"
+      - "3478:3478:udp"
+      - "10001:10001:udp"
+    environment:
+      PUID: 1000
+      PGID: 1000
+      TZ: Europe/Prague
+      MONGO_HOST: 127.0.0.1
+      MONGO_PORT: 27017
+      MONGO_DBNAME: unifi
+      MONGO_USER: unifi
+      MONGO_PASS: unifi
+      MONGO_AUTHSOURCE: admin
+      MEM_LIMIT: 1024
+    volumes:
+      - unifi_data:/config
+    restart: unless-stopped
+volumes:
+  unifi_db: {}
+  unifi_data: {}

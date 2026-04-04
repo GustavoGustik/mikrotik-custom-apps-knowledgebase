@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://tikoci.github.io/restraml/routeros-app-yaml-schema.latest.json
+# Zigbee2MQTT — single-service app, depends on external Mosquitto
+# After first start, configure via onboarding wizard at http://<ip>:8080
+# Deploy: /app add disabled=no network=bridge1 yaml=[/file get zigbee2mqtt.app.yml contents]
+name: zigbee2mqtt
+descr: Zigbee2MQTT bridge with web GUI
+page: https://www.zigbee2mqtt.io/
+category: home-automation
+default-credentials: onboarding
+url-path: /
+auto-update: false
+services:
+  zigbee2mqtt:
+    image: ghcr.io/koenkk/zigbee2mqtt:latest
+    ports:
+      - "8080:8080:web"
+    environment:
+      TZ: Europe/Prague
+    volumes:
+      - z2m_data:/app/data
+    restart: unless-stopped
+volumes:
+  z2m_data: {}

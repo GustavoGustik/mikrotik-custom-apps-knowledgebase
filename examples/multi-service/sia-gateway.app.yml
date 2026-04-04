@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=https://tikoci.github.io/restraml/routeros-app-yaml-schema.latest.json
+# SIA DC-09 Alarm Receiver — custom Node.js app with PostgreSQL
+# Uses generic node:20-alpine base image with code on volume
+# Deploy: /app add disabled=no network=bridge1 yaml=[/file get sia-gateway.app.yml contents]
+name: sia-gateway
+descr: SIA DC-09 alarm receiver with MQTT, Loxone and web UI
+page: https://www.securityindustry.org/industry-standards/dc-09/
+category: security
+default-credentials: none
+url-path: /
+services:
+  postgres:
+    image: docker.io/postgres:16-alpine
+    environment:
+      POSTGRES_DB: sia_gateway
+      POSTGRES_USER: sia
+      POSTGRES_PASSWORD: sia
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    restart: unless-stopped
+  gateway:
+    image: docker.io/node:20-alpine
+    ports:
+      - "5000:5000:sia-dc09"
+      - "3000:3000:web"
+    environment:
+      NODE_ENV: production
+      CONFIG_PATH: /app/config.json
+      TZ: Europe/Prague
+    command: "node /app/dist/index.js"
+    volumes:
+      - app:/app
+    depends_on:
+      - postgres
+    restart: unless-stopped
+volumes:
+  pg_data: {}
+  app: {}

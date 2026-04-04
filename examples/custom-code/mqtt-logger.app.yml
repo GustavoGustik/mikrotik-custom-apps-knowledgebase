@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=https://tikoci.github.io/restraml/routeros-app-yaml-schema.latest.json
+# MQTT Logger — generic Node.js image with custom code on volume
+# Demonstrates: node:20-alpine base + custom command + code volume
+# Code uploaded via SCP to /nvme1/apps/mqtt-logger/app/
+# Deploy: /app add disabled=no network=bridge1 yaml=[/file get mqtt-logger.app.yml contents]
+name: mqtt-logger
+descr: MQTT traffic logger to PostgreSQL/TimescaleDB for analytics
+page: https://github.com/gustavo/mqtt-logger
+category: monitoring
+default-credentials: none
+url-path: /
+auto-update: false
+services:
+  logger:
+    image: docker.io/node:20-alpine
+    ports:
+      - "3000:3000:web"
+    environment:
+      WEB_PORT: "3000"
+      MQTT_BROKER: mqtt://192.168.128.50:1883
+      DB_HOST: 192.168.128.1
+      DB_PORT: "5432"
+      DB_NAME: mqtt_logger
+      DB_USER: mqtt_logger
+      DB_PASSWORD: mqtt_logger
+      MQTT_TOPICS: "#"
+      SKIP_TOPICS: "z2m-steti/bridge/"
+      BATCH_SIZE: "100"
+      BATCH_INTERVAL_MS: "1000"
+      NODE_ENV: production
+      TZ: Europe/Prague
+    command: "sh /app/entrypoint.sh"
+    volumes:
+      - app:/app
+    restart: unless-stopped
+volumes:
+  app: {}

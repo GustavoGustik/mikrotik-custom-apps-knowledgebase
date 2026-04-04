@@ -1,0 +1,90 @@
+# yaml-language-server: $schema=https://tikoci.github.io/restraml/routeros-app-yaml-schema.latest.json
+# MikroTik Controller — complex 4-service app (Postgres + Backend + Worker + Caddy)
+# Demonstrates: depends_on chains, shared image with different commands, Caddy reverse proxy
+# Deploy: /app add disabled=no network=bridge1 yaml=[/file get mikrotik-controller.app.yml contents]
+name: mikrotik-controller
+descr: MikroTik Controller - Centralized router management and monitoring platform
+page: https://github.com/gustavo/mikrotik-controller
+icon: https://upload.wikimedia.org/wikipedia/commons/7/7e/MikroTik_logo.svg
+category: networking
+default-credentials: admin / admin (change immediately!)
+url-path: /
+auto-update: false
+
+services:
+  # PostgreSQL Database — always starts first
+  database:
+    image: docker.io/library/postgres:16.7-alpine
+    container_name: mtk-database
+    hostname: postgres
+    environment:
+      POSTGRES_DB: mikrotik_controller
+      POSTGRES_USER: mikrotik
+      POSTGRES_PASSWORD: MikroTik2024Secure!
+      POSTGRES_INITDB_ARGS: --encoding=UTF8 --locale=C
+      PGDATA: /var/lib/postgresql/data/pgdata
+      TZ: Europe/Prague
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    shm_size: "256mb"
+    stop_grace_period: "30s"
+    restart: unless-stopped
+
+  # Node.js Backend API
+  backend:
+    image: docker.io/gustavogustik/mikrotik-controller-backend:latest
+    container_name: mtk-backend
+    hostname: backend
+    depends_on:
+      - database
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://mikrotik:MikroTik2024Secure!@localhost:5432/mikrotik_controller
+      JWT_SECRET: SuperSecretJWTKey_Change_This_In_Production_123
+      JWT_EXPIRES_IN: 7d
+      PORT: "3000"
+      CORS_ORIGIN: "*"
+      LOG_LEVEL: info
+      TZ: Europe/Prague
+    stop_grace_period: "10s"
+    restart: unless-stopped
+
+  # Background Monitoring Worker — same image, different command
+  worker:
+    image: docker.io/gustavogustik/mikrotik-controller-backend:latest
+    container_name: mtk-worker
+    hostname: worker
+    depends_on:
+      - database
+      - backend
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://mikrotik:MikroTik2024Secure!@localhost:5432/mikrotik_controller
+      WORKER_MODE: "true"
+      MONITORING_INTERVAL: "30000"
+      LOG_LEVEL: info
+      TZ: Europe/Prague
+    command: "node dist/workers/monitoring-worker.js"
+    stop_grace_period: "10s"
+    restart: unless-stopped
+
+  # Caddy Reverse Proxy — single entry point on port 80
+  caddy:
+    image: docker.io/library/caddy:2-alpine
+    container_name: mtk-caddy
+    hostname: caddy
+    depends_on:
+      - backend
+    ports:
+      - "80:80:web"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    command: "caddy reverse-proxy --from :80 --to backend:3000"
+    stop_grace_period: "5s"
+    restart: unless-stopped
+
+volumes:
+  pg_data: {}
+  caddy_data: {}
+  caddy_config: {}
