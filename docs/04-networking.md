@@ -1,12 +1,87 @@
 # Networking
 
-Custom Apps networking is one of the most important and nuanced parts of the system. Understanding the two modes and their implications is critical for reliable deployments.
+Custom Apps networking is one of the most important and nuanced parts of the system. Understanding the network modes and their implications is critical for reliable deployments.
 
-## Two Network Modes
+## The `network` Parameter (How Bridge Selection Works)
+
+Every app has **two** network-related settings:
+
+1. **`default-network`** — Comes from the YAML manifest. Determined by the `networks:` section.
+2. **`network`** — CLI override on `/app add` or `/app set`. Takes precedence over YAML.
+
+### How it's determined
+
+| YAML `networks:` section | `default-network` value |
+|--------------------------|------------------------|
+| No `networks:` section | `internal` |
+| `networks: default: name: lan, external: true` | `bridge1` (the LAN bridge) |
+
+### The `network` parameter values
+
+| `/app` `network=` value | Behavior |
+|------------------------|----------|
+| `default` | Use whatever `default-network` the YAML defines. This is the default for catalog apps. |
+| `bridge1` | **Override**: Attach VETH directly to `bridge1` (LAN bridge). Ignores YAML `networks:` section. |
+| `internal` | **Override**: Force internal isolated bridge (172.18.0.0/24 with NAT). |
+| `<any-bridge-name>` | Attach to a specific bridge by name (e.g., `bridge-iot`, `bridge-guest`). |
+
+### Real-world example from production router (91 apps)
+
+```
+/app print proplist=name,default-network,network where !disabled
+```
+
+| App | default-network (YAML) | network (CLI) | Effective Mode |
+|-----|----------------------|---------------|----------------|
+| docmost | internal | default | **internal** (NAT at 172.18.0.6) |
+| mosquitto | internal | bridge1 | **bridge1** (LAN at 192.168.128.50) |
+| zigbee2mqtt | internal | bridge1 | **bridge1** (LAN at 192.168.128.51) |
+| unifi | internal | bridge1 | **bridge1** (LAN at 192.168.128.54) |
+
+Some **catalog apps** come pre-configured with `default-network=bridge1` because they need LAN access by design:
+
+| Catalog App | default-network | Why |
+|------------|-----------------|-----|
+| home-assistant | bridge1 | Needs mDNS, device discovery |
+| chr (Cloud Hosted Router) | bridge1 | Needs direct network access |
+| jellyfin | bridge1 | Media streaming, DLNA |
+| plex | bridge1 | Media streaming, DLNA |
+| syncthing | bridge1 | P2P file sync |
+| transmission | bridge1 | BitTorrent, needs direct ports |
+| upsnap | bridge1 | Wake-on-LAN, needs L2 |
+
+Most other catalog apps (84 out of 91) default to `internal`.
+
+### Setting the network mode
+
+**At creation time**:
+```
+# Use YAML default (usually internal)
+/app add yaml="..." 
+
+# Override to bridge1 (LAN)
+/app add network=bridge1 yaml="..."
+
+# Force internal even if YAML says bridge1
+/app add network=internal yaml="..."
+```
+
+**After creation**:
+```
+# Change network mode
+/app/set myapp network=bridge1
+
+# Reset to YAML default
+/app/set myapp network=default
+```
+
+**Note**: Changing network mode requires disable/enable cycle to take effect.
+
+## Network Modes in Detail
 
 ### Mode 1: Internal Bridge (Default — NAT)
 
-When no `networks:` section is specified OR `network=default` is used.
+When no `networks:` section is specified OR `network=default` is used with `default-network=internal`.
 
 ```
                     Internet
