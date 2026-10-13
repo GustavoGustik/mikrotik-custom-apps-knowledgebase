@@ -26,7 +26,7 @@ set -euo pipefail
 # === Configuration ===
 ROUTER="${ROUTER:-192.168.128.1}"
 SSH_USER="${SSH_USER:-claude}"
-SSH_PASS="${SSH_PASS:-claude}"
+SSH_PASS="${SSH_PASS:?Set SSH_PASS}"
 BACKUP_DIR="${BACKUP_DIR:-/opt/mikrotik-backup}"
 DISK="${DISK:-nvme1}"
 KEEP_DAYS="${KEEP_DAYS:-30}"
